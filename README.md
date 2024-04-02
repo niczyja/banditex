@@ -3,11 +3,8 @@
 ## Setting up
 
 * [ ] `git clone` this repo
-
 * [ ] [Download CMAKE](https://cmake.org/download/) if you aren't already using it
-
 * [ ] Populate the  JUCE by running `git submodule update --init` in your repository directory
-
 * [ ] Build n' Run: to generate an Xcode project, run `cmake -B Builds -G Xcode`. Project will be in `Build` folder which is not commited to the repo.
 
 ## Where do I put new .h / .cpp files?
