@@ -1,90 +1,20 @@
-![PAMPLEJUCE](assets/images/pamplejuce.png)
-[![](https://github.com/sudara/pamplejuce/workflows/Pamplejuce/badge.svg)](https://github.com/sudara/pamplejuce/actions)
+# Banditex
 
-Pamplejuce is a ~~template~~ lifestyle for creating and building JUCE plugins in 2023.
+## Setting up
 
-Out of the box, it:
+* [ ] `git clone` this repo
 
-1. Supports C++20.
-2. Uses JUCE 7.x as a submodule tracking develop.
-3. Relies on CMake 3.24.1 and higher for cross-platform building.
-4. Has [Catch2](https://github.com/catchorg/Catch2) v3.4.0 for the test framework and runner.
-5. Includes a `Tests` target and a `Benchmarks` target some examples to get started quickly.
-6. Has [Melatonin Inspector](https://github.com/sudara/melatonin_inspector) installed as a JUCE module to help relieve headaches when building plugin UI.
+* [ ] [Download CMAKE](https://cmake.org/download/) if you aren't already using it
 
-It also has integration with GitHub Actions, specifically:
+* [ ] Populate the  JUCE by running `git submodule update --init` in your repository directory
 
-1. Building and testing cross-platform (linux, macOS, Windows) binaries
-2. Running tests and benchmarks in CI
-3. Running [pluginval](http://github.com/tracktion/pluginval) 1.x against the binaries for plugin validation
-4. Config for [installing Intel IPP](https://www.intel.com/content/www/us/en/developer/tools/oneapi/ipp.html)
-5. [Code signing and notarization on macOS](https://melatonin.dev/blog/how-to-code-sign-and-notarize-macos-audio-plugins-in-ci/)
-6. [Windows EV/OV code signing via Azure Key Vault](https://melatonin.dev/blog/how-to-code-sign-windows-installers-with-an-ev-cert-on-github-actions/)
-
-It also contains:
-
-1. A `.gitignore` for all platforms.
-2. A `.clang-format` file for keeping code tidy.
-3. A `VERSION` file that will propagate through JUCE and your app.
-4. A ton of useful comments and options around the CMake config.
-
-## How does this all work at a high level?
-
-If you are new to CMake, I suggest you read up about [JUCE and CMmake on my blog!](https://melatonin.dev/blog/how-to-use-cmake-with-juce/).
-
-## Can I see some examples?
-
-Lots of people have used Pamplejuce as their starting place for their private plugin projects. 
-
-Two amazing public examples (complete with signed binaries) are:
-
-* [Valentine](https://github.com/tote-bag-labs/valentine), a compressor plugin by Jose Diaz Rohena
-* [Maim](https://github.com/ArdenButterfield/Maim), an mp3 distortion plugin by Arden Butterfield
-
-## Setting up for YOUR project
-
-This is a template repo! 
-
-That means the easiest thing to do is click "[Use this template](https://github.com/sudara/pamplejuce/generate)" here or at the top of the page to get your own repo with all the code here.
-
-After you've created a new repo from the template, you have a checklist of things to do to customize for your project.
-
-* [ ] `git clone` your new repo (if you make it private, see the warning below about GitHub Actions minutes)
-
-* [ ] [Download CMAKE](https://cmake.org/download/) if you aren't already using it (Clion and VS2022 both have it bundled, so you can skip this step in those cases).
-
-* [ ] Populate the  JUCE by running `git submodule update --init` in your repository directory. By default, this will track JUCE's `develop` branch, which is a good default until you are at the point of releasing a plugin. It will also pull in the CMake needed and an example module, my component inspector.
-
-* [ ] Replace `Pamplejuce` with the name of your project in `CMakeLists.txt` where the `PROJECT_NAME` variable is first set. Make this all one word, no spaces. 
-
-* [ ] Adjust which plugin formats you want built as needed (VST3, AU, etc).
-
-* [ ] Set the correct flags for your plugin `juce_add_plugin`. Check out the API https://github.com/juce-framework/JUCE/blob/master/docs/CMake%20API.md and be sure to change things like `PLUGIN_CODE` and `PLUGIN_MANUFACTURER_CODE` and everything that says `Change me!`.
-  
-* [ ] Build n' Run! If you want to generate an Xcode project, run `cmake -B Builds -G Xcode`. Or just open the project in CLion or VS2022. Running the standalone might be easiest, but you can also build the `AudioPluginHost` that comes with JUCE. Out of the box, Pamplejuce's VST3/AU targets should already be pointing to it's built location.
-
-* [ ] If you want to package and code sign, you'll want to take a look at the packaging/ directory add assets and config that match your product. Otherwise, you can delete the GitHub Action workflow steps that handle packaging (macOS will need code signing steps to work properly).
-
-This is what you will see when it's built, the plugin displaying its version number with a button that opens up the [Melatonin Inspector](https://github.com/sudara/melatonin_inspector): 
-
-![Pamplejuce v1 - 2023-08-28 41@2x](https://github.com/sudara/pamplejuce/assets/472/33a9c8d5-fc3f-42e7-bd06-21a1559c7128)
-
-
-## FAQ
-
-> [!TIP]
-> Don't see your question here? [Open an issue](https://github.com/sudara/pamplejuce/issues/new)!
+* [ ] Build n' Run: to generate an Xcode project, run `cmake -B Builds -G Xcode`. Project will be in `Build` folder which is not commited to the repo.
 
 ## Where do I put new .h / .cpp files?
 
 New source files go in `/source`. All `.h` and `.cpp` files in that directory will be available to include in your plugin target and your tests. 
 
 Tests go in `/tests`. Just add .cpp files there and they will be available in the Tests target.
-
-> [!NOTE]
-> If you use an overeager, CMake-aware IDE (like CLion) it might prompt you to manually add files to a CMake target. This is not needed.
-
-![Preview - 2023-11-25 34@2x](https://github.com/sudara/pamplejuce/assets/472/cb9e22b5-3352-435a-ac3f-7631eb6ad007)
 
 I recommend not stuffing everything into the boilerplate PluginEditor/PluginProcessor files. Sure, go ahead make a mess at first. But then clean them up and just include your source from there.
 
@@ -111,22 +41,6 @@ You need to include `BinaryData.h` to access it.
 
 > [!IMPORTANT]
 > You may have to configure the project (just hit build in your IDE) to build juceaide before the header will be available.
-
-## How I get clang-format working 
-
-There are a huge number of benefits to automatic formatting of code, including the very obvious one of guaranteed consistency and therefore readability. But it also saves brain cycles and can prevent team [bike-shedding](https://thedecisionlab.com/biases/bikeshedding).
-
-@CrushedPixel, who prompted me to write this FAQ entry says 
-
-> Formatting is a really key component and you’re providing it out of the box. I have learned to swallow my pride when it comes to my own preferences, so I’m okay as long as I can just hit save and the IDE does the deed for me
-
-The included `.clang-format` file will get you very close to the [JUCE style guide](https://juce.com/coding-standards/).
-
-On CLion, see [this guide](https://www.jetbrains.com/help/clion/clangformat-as-alternative-formatter.html) on how to clang format on save or on key command (my preference).
-
-On VS 2022, [it's enabled by default](https://learn.microsoft.com/en-us/visualstudio/ide/reference/options-text-editor-c-cpp-formatting?view=vs-2022#configuring-clangformat-options).
-
-On Xcode, see this [plugin](https://github.com/travisjeffery/ClangFormat-Xcode) (disclaimer, when I was still using Xcode I couldn't find a great solution, which is part of why I switched to CLion).
 
 ## What's the deal with code signing and notarization?
 
@@ -158,41 +72,12 @@ git push --tags
 > [!IMPORTANT]
 > Releases are set to `prerelease`! This means that uploaded release assets are visible to other users (on public repositories), but not explicitly listed as the latest release until you "publish" in the GitHub UI. 
 
-> [!NOTE]
-> I would like the release process to be easier. I'm open to suggestions, [please read the options and provide feedback](https://github.com/sudara/pamplejuce/issues/44#issuecomment-1701910167).
-
-
-## How do I add *private* github repos as JUCE modules?
-
-Generate an ssh key (without a passphrase) for the repository and add it as a secret to your Pamplejuce-derived repository. 
-
-Then, use the `ssh_key` option in the checkout action, like so:
-
-```yml
-- name: Checkout code
-  uses: actions/checkout@v3
-  with:
-    ssh_key: ${{ secrets.SSH_PRIVATE_KEY }}
-    submodules: true # Get JUCE populated
-```
-
-Also see @mikelange49's solution [here](https://github.com/sudara/pamplejuce/issues/58#issuecomment-1777440387).
-
 ## I'm new to GitHub Actions, what do I need to know?
 
 CI will run against latest Linux, Windows, and macOS unless modified. You can do it all for free on public repos.
 
-For private repos, be sure to do some calculations about free minutes vs. costs on running in CI.
-
-> [!WARNING] 
-> GitHub gives you 2000 or 3000 free GitHub Actions "minutes" / month for private projects, but [they actually bill 2x the number of minutes you use on Windows and 10x on MacOS](https://docs.github.com/en/free-pro-team@latest/github/setting-up-and-managing-billing-and-payments-on-github/about-billing-for-github-actions#about-billing-for-github-actions).
-
-You might feel disincentivized to push to private repos (as you would burn through minutes). By default, multiple commits in quick succession will cancel any earlier running builds. There are also timeouts set so you can't accidentally stall a build and burn through time.
-
 > [!NOTE]
 > You can push a commit with `[ci skip]` in the message if you are just doing things like updating the README or checking in a WIP that you know will fail CI.
-
-You have a few other big picture options, like doing testing/pluginval only on linux and moving everything else to `Release` only.  The tradeoff is you won't be sure everything is happy on all platforms until the time you are releasing, which is the last place you really want friction.
 
 ## How do variables work in GitHub Actions?
 
@@ -227,14 +112,6 @@ Using `JuceHeader.h` has been deprecated for some time — if it's a new project
 Instead, directly include the `.h` files you need from the juce modules you are using, like `#include "juce_gui_basics/juce_gui_basics.h"`
 
 If you are converting an older project, it's still worth the conversion away from `JuceHeader.h` to using the actual juce modules you need. You'll get faster compilation, autocomplete, etc. You can [see an example of the conversion I did for the pluginval project](https://github.com/Tracktion/pluginval/pull/90/files). It's less scary than you think: just make sure the `juce::` prefix is added everywhere, try to compile and your IDE will yell at you when you need to include one of the modules :)
-
-## Contributing
-
-Thanks to everyone who has contacted me over discord DM and/or contributed to the repository.
-
-This repository covers a _lot_ of ground. JUCE itself has a lot of surface area. It's a group effort to maintain the garden and keep things nice! 
-
-If something isn't just working out of the box — *it's not just you* — others are running into the problem, too, I promise. Please submit a PR or issue.
 
 ## Original References & Inspiration
 
