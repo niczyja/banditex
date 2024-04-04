@@ -6,6 +6,7 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     juce::ignoreUnused (processorRef);
 
     addAndMakeVisible (inspectButton);
+    addAndMakeVisible (mLoadButton);
 
     // this chunk of code instantiates and opens the melatonin inspector
     inspectButton.onClick = [&] {
@@ -19,7 +20,9 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     };
     
     //file loading button behaviour
-    mLoadButton.onClick = [&]() { };
+    mLoadButton.onClick = [&] {
+        p.loadFile();
+    };
     
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
@@ -48,4 +51,5 @@ void PluginEditor::resized()
     auto area = getLocalBounds();
     area.removeFromBottom(50);
     inspectButton.setBounds (getLocalBounds().withSizeKeepingCentre(100, 50));
+    mLoadButton.setBounds(getLocalBounds().withSize(100, 50));
 }

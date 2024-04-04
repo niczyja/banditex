@@ -22,7 +22,7 @@ private:
     // access the processor object that created it.
     
     //adding button for file loading
-    TextButton mLoadButton {"Load File"};
+    juce::TextButton mLoadButton {"Load File"};
     
     //down JUCE stuff generated previously
     PluginProcessor& processorRef;

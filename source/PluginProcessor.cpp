@@ -1,7 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-using namespace juce;
 
 //==============================================================================
 PluginProcessor::PluginProcessor()
@@ -15,14 +14,12 @@ PluginProcessor::PluginProcessor()
                        )
 {
     
-    //
-    
     mFormatManager.registerBasicFormats();
     
     //adding voices for audio playback
     for (int i = 0; i < mNumVoices; i++)
     {
-        mSampler.addVoice(new SamplerVoice());
+        mSampler.addVoice(new juce::SamplerVoice());
     }
     
 }
@@ -193,7 +190,7 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 }
 void PluginProcessor::loadFile()
 {
-    FileChooser chooser {"Load File"};
+    juce::FileChooser chooser {"Load File"};
     if (chooser.browseForFileToOpen())
     {
         auto file = chooser.getResult();

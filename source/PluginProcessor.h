@@ -1,10 +1,8 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <juce_audio_formats/sampler/juce_Sampler.h>
-//#include <juce_audio_formats/format/juce_AudioFormatManager.h>
-
-using namespace juce;
+#include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_audio_formats/juce_audio_formats.h>
 
 #if (MSVC)
 #include "ipps.h"
@@ -48,12 +46,12 @@ public:
     
 
 private:
-    Synthesiser mSampler;
+    juce::Synthesiser mSampler;
     const int mNumVoices { 32 };
-    // adding audio format manager
-    AudioFormatManager mFormatManager;
-    AudioFormatReader* mFormatReader(nullptr);
     
+    // adding audio format manager
+    juce::AudioFormatManager mFormatManager;
+    juce::AudioFormatReader* mFormatReader { nullptr };
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };
