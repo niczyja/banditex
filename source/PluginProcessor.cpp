@@ -97,6 +97,8 @@ void PluginProcessor::changeProgramName (int index, const juce::String& newName)
 //==============================================================================
 void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    //making sure that mSampler uses a correct sample rate defined by DAW
+    mSampler.setCurrentPlaybackSampleRate(sampleRate);
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
     juce::ignoreUnused (sampleRate, samplesPerBlock);
@@ -147,6 +149,9 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
+    
+    mSampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+    
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
@@ -190,12 +195,18 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 }
 void PluginProcessor::loadFile()
 {
+    //method for loading audio files through a openable window
     juce::FileChooser chooser {"Load File"};
     if (chooser.browseForFileToOpen())
     {
         auto file = chooser.getResult();
+        std::printf("done");
         mFormatReader = mFormatManager.createReaderFor (file);
     }
+    //adding sampler sound from loaded file
+    juce::BigInteger range;
+    range.setRange(0, 128, true);
+    mSampler.addSound (new juce::SamplerSound ("sample", *mFormatReader, range, 60, 0.1, 0.1, 30));
 }
 //==============================================================================
 // This creates new instances of the plugin..

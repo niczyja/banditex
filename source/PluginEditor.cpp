@@ -20,9 +20,11 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     };
     
     //file loading button behaviour
-    mLoadButton.onClick = [&] {
+    mLoadButton.onClick = [&]() {
         p.loadFile();
     };
+    addAndMakeVisible(mLoadButton);
+    
     
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
