@@ -17,7 +17,10 @@ PluginEditor::PluginEditor (PluginProcessor& p)
 
         inspector->setVisible (true);
     };
-
+    
+    //file loading button behaviour
+    mLoadButton.onClick = [&]() { };
+    
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (400, 300);

@@ -4,6 +4,8 @@
 #include "BinaryData.h"
 #include "melatonin_inspector/melatonin_inspector.h"
 
+
+
 //==============================================================================
 class PluginEditor : public juce::AudioProcessorEditor
 {
@@ -18,6 +20,11 @@ public:
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
+    
+    //adding button for file loading
+    TextButton mLoadButton {"Load File"};
+    
+    //down JUCE stuff generated previously
     PluginProcessor& processorRef;
     std::unique_ptr<melatonin::Inspector> inspector;
     juce::TextButton inspectButton { "Inspect the UI" };

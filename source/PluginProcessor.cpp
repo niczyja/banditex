@@ -1,6 +1,8 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+using namespace juce;
+
 //==============================================================================
 PluginProcessor::PluginProcessor()
      : AudioProcessor (BusesProperties()
@@ -12,10 +14,22 @@ PluginProcessor::PluginProcessor()
                      #endif
                        )
 {
+    
+    //
+    
+    mFormatManager.registerBasicFormats();
+    
+    //adding voices for audio playback
+    for (int i = 0; i < mNumVoices; i++)
+    {
+        mSampler.addVoice(new SamplerVoice());
+    }
+    
 }
 
 PluginProcessor::~PluginProcessor()
 {
+    mFormatReader = nullptr;
 }
 
 //==============================================================================
@@ -177,7 +191,15 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
     // whose contents will have been created by the getStateInformation() call.
     juce::ignoreUnused (data, sizeInBytes);
 }
-
+void PluginProcessor::loadFile()
+{
+    FileChooser chooser {"Load File"};
+    if (chooser.browseForFileToOpen())
+    {
+        auto file = chooser.getResult();
+        mFormatReader = mFormatManager.createReaderFor (file);
+    }
+}
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

@@ -1,6 +1,10 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_audio_formats/sampler/juce_Sampler.h>
+//#include <juce_audio_formats/format/juce_AudioFormatManager.h>
+
+using namespace juce;
 
 #if (MSVC)
 #include "ipps.h"
@@ -37,7 +41,19 @@ public:
 
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
+    
+    //function for loading a file into the mSampler
+    void loadFile();
+            
+    
 
 private:
+    Synthesiser mSampler;
+    const int mNumVoices { 32 };
+    // adding audio format manager
+    AudioFormatManager mFormatManager;
+    AudioFormatReader* mFormatReader(nullptr);
+    
+    
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };
