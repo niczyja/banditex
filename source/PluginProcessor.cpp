@@ -200,7 +200,9 @@ void PluginProcessor::loadFile()
     if (chooser.browseForFileToOpen())
     {
         auto file = chooser.getResult();
-        std::printf("done");
+        
+        DBG("loaded file: " << chooser.getURLResult().toString(true));
+        
         mFormatReader = mFormatManager.createReaderFor (file);
     }
     //adding sampler sound from loaded file
