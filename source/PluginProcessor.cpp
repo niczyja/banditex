@@ -132,26 +132,56 @@ bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
   #endif
 }
 
-void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer,
-                                              juce::MidiBuffer& midiMessages)
+void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    juce::ignoreUnused (midiMessages);
-
     juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
+    auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
+    // In case we have more outputs than inputs, clear any output channels that didn't contain input data
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
-    
+        buffer.clear(i, 0, buffer.getNumSamples());
+
+    // Render next block
     mSampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-    
+
+    // Iterate over incoming MIDI messages
+    for (const auto metadata : midiMessages)
+    {
+        const juce::MidiMessage& midiEvent = metadata.getMessage();
+        
+        if (midiEvent.isNoteOn())
+        {
+            // Get the number of files in loadedFiles to pick a random index
+            const auto numFiles = loadedFiles.size();
+            
+            if (numFiles > 0) {
+                const int randomIndex = juce::Random::getSystemRandom().nextInt(static_cast<int>(numFiles));
+                const auto& randomFile = loadedFiles[static_cast<std::vector<juce::File>::size_type>(randomIndex)];
+
+                // Add sampler sound from the randomly picked file
+                auto* audioFileReader = mFormatManager.createReaderFor(randomFile);
+                if (audioFileReader != nullptr && audioFileReader->lengthInSamples > 0) {
+                    // Add sampler sound from the randomly picked file
+                    juce::BigInteger range;
+                    range.setRange(0, 128, true); // Set the range of MIDI notes
+                    mSampler.addSound(new juce::SamplerSound("sample", *audioFileReader, range, 60, 0.1, 0.1, 30));
+                }
+                else {
+                    DBG("Error loading file: " << randomFile.getFullPathName());
+                }
+
+            }
+        }
+        else if (midiEvent.isNoteOff())
+        {
+            // Turn off the note using noteOff()
+            mSampler.noteOff(1, midiEvent.getNoteNumber(), midiEvent.getFloatVelocity(), true);
+        }
+    }
+
+    // Remove processed MIDI messages
+    midiMessages.clear();
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
@@ -166,6 +196,8 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer,
         // ..do something to the data...
     }
 }
+
+
 
 //==============================================================================
 bool PluginProcessor::hasEditor() const
@@ -209,6 +241,54 @@ void PluginProcessor::loadFile()
     juce::BigInteger range;
     range.setRange(0, 128, true);
     mSampler.addSound (new juce::SamplerSound ("sample", *mFormatReader, range, 60, 0.1, 0.1, 30));
+}
+void PluginProcessor::loadFiles()
+{
+    // Method for loading audio files through an openable window
+    juce::FileChooser chooser {"Load Files"};
+    if (chooser.browseForMultipleFilesToOpen())
+    {
+        clearFiles(); // Clear previously loaded files if any
+        
+        auto files = chooser.getResults();
+        
+        for (auto file : files)
+        {
+            DBG("Loaded file: " << file.getFullPathName());
+            
+            auto audioFileReader = mFormatManager.createReaderFor(file);
+            if (audioFileReader != nullptr)
+            {
+                juce::BigInteger range;
+                range.setRange(0, 128, true); // Set the range of MIDI notes
+                // Add sampler sound from loaded file
+                mSampler.addSound (new juce::SamplerSound ("sample", *audioFileReader, range, 60, 0.1, 0.1, 30));
+                
+                // Store the loaded file
+                loadedFiles.push_back(file);
+            }
+            else
+            {
+                DBG("Error loading file: " << file.getFullPathName());
+            }
+        }
+    }
+}
+
+
+
+
+
+
+void PluginProcessor::clearFiles()
+{
+    // Clear previously loaded files and release resources
+    for (auto& reader : loadedReaders)
+    {
+        reader = nullptr;
+    }
+    loadedReaders.clear();
+    loadedFiles.clear();
 }
 //==============================================================================
 // This creates new instances of the plugin..

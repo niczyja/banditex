@@ -8,28 +8,34 @@ PluginEditor::PluginEditor (PluginProcessor& p)
     addAndMakeVisible (inspectButton);
     addAndMakeVisible (mLoadButton);
 
-    // this chunk of code instantiates and opens the melatonin inspector
-    inspectButton.onClick = [&] {
-        if (!inspector)
-        {
-            inspector = std::make_unique<melatonin::Inspector> (*this);
-            inspector->onClose = [this]() { inspector.reset(); };
-        }
+    // Initialize file label
+    addAndMakeVisible(fileLabel);
+    fileLabel.setText("No file loaded", juce::NotificationType::dontSendNotification);
+    fileLabel.setColour(juce::Label::textColourId, juce::Colours::white);
 
-        inspector->setVisible (true);
-    };
-    
-    //file loading button behaviour
+    // File loading button behaviour
     mLoadButton.onClick = [&]() {
-        p.loadFile();
+        p.loadFiles();
     };
     addAndMakeVisible(mLoadButton);
-    
     
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (400, 300);
 }
+
+void PluginEditor::resized()
+{
+    // Layout the positions of your child components here
+    auto area = getLocalBounds();
+    area.removeFromBottom(50);
+    inspectButton.setBounds (getLocalBounds().withSizeKeepingCentre(100, 50));
+    mLoadButton.setBounds(getLocalBounds().withSize(100, 50));
+
+    // Set bounds for file label
+    fileLabel.setBounds(area.removeFromTop(20));
+}
+
 
 PluginEditor::~PluginEditor()
 {
@@ -45,13 +51,4 @@ void PluginEditor::paint (juce::Graphics& g)
     g.setFont (16.0f);
     auto helloWorld = juce::String ("Hello from ") + PRODUCT_NAME_WITHOUT_VERSION + " v" VERSION + " running in " + CMAKE_BUILD_TYPE;
     g.drawText (helloWorld, area.removeFromTop (150), juce::Justification::centred, false);
-}
-
-void PluginEditor::resized()
-{
-    // layout the positions of your child components here
-    auto area = getLocalBounds();
-    area.removeFromBottom(50);
-    inspectButton.setBounds (getLocalBounds().withSizeKeepingCentre(100, 50));
-    mLoadButton.setBounds(getLocalBounds().withSize(100, 50));
 }

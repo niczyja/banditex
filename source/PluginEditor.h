@@ -21,10 +21,13 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     
-    //adding button for file loading
+    // Adding button for file loading
     juce::TextButton mLoadButton {"Load File"};
     
-    //down JUCE stuff generated previously
+    // Text label for displaying loaded file names
+    juce::Label fileLabel;
+
+    // Down JUCE stuff generated previously
     PluginProcessor& processorRef;
     std::unique_ptr<melatonin::Inspector> inspector;
     juce::TextButton inspectButton { "Inspect the UI" };

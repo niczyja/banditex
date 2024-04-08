@@ -3,6 +3,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_formats/juce_audio_formats.h>
+#include <vector>
+#include <memory>
 
 #if (MSVC)
 #include "ipps.h"
@@ -42,13 +44,21 @@ public:
     
     //function for loading a file into the mSampler
     void loadFile();
-            
+    //function for loading multiple file into the mSampler
+    void loadFiles();
+    //function for clearing all loaded multiple files from loadedFiles array
+    void clearFiles();
     
 
 private:
     juce::Synthesiser mSampler;
     const int mNumVoices { 32 };
     
+    // Array to store loaded files
+    std::vector<juce::File> loadedFiles;
+    // Array to store corresponding readers
+    std::vector<std::unique_ptr<juce::AudioFormatReader>> loadedReaders;
+
     // adding audio format manager
     juce::AudioFormatManager mFormatManager;
     juce::AudioFormatReader* mFormatReader { nullptr };
