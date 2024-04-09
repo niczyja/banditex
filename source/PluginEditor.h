@@ -7,7 +7,8 @@
 
 
 //==============================================================================
-class PluginEditor : public juce::AudioProcessorEditor
+class PluginEditor : public juce::AudioProcessorEditor,
+                     public juce::ChangeListener
 {
 public:
     explicit PluginEditor (PluginProcessor&);
@@ -16,16 +17,21 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
+    // Add a member function to update the list of loaded file names and highlight the currently played file
+    void updateLoadedFilesList();
+    // adding a change listener callback to listen to the broadcaster notifys
+    void changeListenerCallback(juce::ChangeBroadcaster* source) override;
 
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     
     // Adding button for file loading
-    juce::TextButton mLoadButton {"Load File"};
+    juce::TextButton mLoadButton {"Load Files"};
+    // Label to display loaded files
+    juce::Label loadedFilesLabel;
     
-    // Text label for displaying loaded file names
-    juce::Label fileLabel;
+    
 
     // Down JUCE stuff generated previously
     PluginProcessor& processorRef;

@@ -5,12 +5,14 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <vector>
 #include <memory>
+//#include <juce_events/broadcasters/juce_ChangeBroadcaster.h>
 
 #if (MSVC)
 #include "ipps.h"
 #endif
 
-class PluginProcessor : public juce::AudioProcessor
+class PluginProcessor : public juce::AudioProcessor,
+                        public juce::ChangeBroadcaster //adding change broadcasting to the processor
 {
 public:
     PluginProcessor();
@@ -48,11 +50,19 @@ public:
     void loadFiles();
     //function for clearing all loaded multiple files from loadedFiles array
     void clearFiles();
+    //funtion to get names of files loaded by loadFiles
+    juce::StringArray getLoadedFilesNames();
+    
+    // method to update index and notify listeners
+    void setCurrentlyPlayingFileIndex(int newIndex);
+    int getCurrentlyPlayingFileIndex() const;
+
     
 
 private:
     juce::Synthesiser mSampler;
     const int mNumVoices { 32 };
+    int currentlyPlayingFileIndex = -1;
     
     // Array to store loaded files
     std::vector<juce::File> loadedFiles;

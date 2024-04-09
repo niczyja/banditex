@@ -157,6 +157,7 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
             
             if (numFiles > 0) {
                 const int randomIndex = juce::Random::getSystemRandom().nextInt(static_cast<int>(numFiles));
+                currentlyPlayingFileIndex = randomIndex;
                 const auto& randomFile = loadedFiles[static_cast<std::vector<juce::File>::size_type>(randomIndex)];
 
                 // Add sampler sound from the randomly picked file
@@ -211,6 +212,7 @@ juce::AudioProcessorEditor* PluginProcessor::createEditor()
 }
 
 //==============================================================================
+
 void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
@@ -225,6 +227,7 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
     // whose contents will have been created by the getStateInformation() call.
     juce::ignoreUnused (data, sizeInBytes);
 }
+
 void PluginProcessor::loadFile()
 {
     //method for loading audio files through a openable window
@@ -242,6 +245,7 @@ void PluginProcessor::loadFile()
     range.setRange(0, 128, true);
     mSampler.addSound (new juce::SamplerSound ("sample", *mFormatReader, range, 60, 0.1, 0.1, 30));
 }
+
 void PluginProcessor::loadFiles()
 {
     // Method for loading audio files through an openable window
@@ -271,14 +275,28 @@ void PluginProcessor::loadFiles()
             {
                 DBG("Error loading file: " << file.getFullPathName());
             }
+            // Call the updateLoadedFilesListAndHighlight() function of the editor to update the UI
+                    if (auto* editor = dynamic_cast<PluginEditor*>(getActiveEditor()))
+                    {
+                        editor->updateLoadedFilesList();
+                    }
         }
     }
 }
 
+void PluginProcessor::setCurrentlyPlayingFileIndex(int newIndex)
+{
+    if (currentlyPlayingFileIndex != newIndex) // Check if the index actually changes
+    {
+        currentlyPlayingFileIndex = newIndex;
+        sendChangeMessage(); // Notify all registered listeners about the change
+    }
+}
 
-
-
-
+int PluginProcessor::getCurrentlyPlayingFileIndex() const
+{
+    return currentlyPlayingFileIndex;
+}
 
 void PluginProcessor::clearFiles()
 {
@@ -290,6 +308,17 @@ void PluginProcessor::clearFiles()
     loadedReaders.clear();
     loadedFiles.clear();
 }
+
+juce::StringArray PluginProcessor::getLoadedFilesNames()
+{
+    juce::StringArray loadedFilesNames;
+    for (const auto& file : loadedFiles)
+    {
+        loadedFilesNames.add(file.getFileName());
+    }
+    return loadedFilesNames;
+}
+
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
