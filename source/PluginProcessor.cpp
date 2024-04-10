@@ -132,6 +132,16 @@ bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
   #endif
 }
 
+
+
+
+//---------------------------------------------------------------
+//----------------- PROCESS BLOCK -------------------------------
+//---------------------------------------------------------------
+
+
+
+
 void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -157,7 +167,7 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
             
             if (numFiles > 0) {
                 const int randomIndex = juce::Random::getSystemRandom().nextInt(static_cast<int>(numFiles));
-                currentlyPlayingFileIndex = randomIndex;
+                setCurrentlyPlayingFileIndex(randomIndex);
                 const auto& randomFile = loadedFiles[static_cast<std::vector<juce::File>::size_type>(randomIndex)];
 
                 // Add sampler sound from the randomly picked file
@@ -228,6 +238,17 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
     juce::ignoreUnused (data, sizeInBytes);
 }
 
+
+
+
+//---------------------------------------------------------------
+//---------------------BANDITEX METHODS--------------------------
+//---------------------------------------------------------------
+
+
+
+
+
 void PluginProcessor::loadFile()
 {
     //method for loading audio files through a openable window
@@ -289,6 +310,7 @@ void PluginProcessor::setCurrentlyPlayingFileIndex(int newIndex)
     if (currentlyPlayingFileIndex != newIndex) // Check if the index actually changes
     {
         currentlyPlayingFileIndex = newIndex;
+        DBG("Current rnd index: " << newIndex);
         sendChangeMessage(); // Notify all registered listeners about the change
     }
 }
@@ -319,8 +341,11 @@ juce::StringArray PluginProcessor::getLoadedFilesNames()
     return loadedFilesNames;
 }
 
+
 //==============================================================================
 // This creates new instances of the plugin..
+
+
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new PluginProcessor();
