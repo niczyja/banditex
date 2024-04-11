@@ -162,32 +162,16 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         
         if (midiEvent.isNoteOn())
         {
-            // Get the number of files in loadedFiles to pick a random index
-            const auto numFiles = loadedFiles.size();
-            
-            if (numFiles > 0) {
-                const int randomIndex = juce::Random::getSystemRandom().nextInt(static_cast<int>(numFiles));
-                setCurrentlyPlayingFileIndex(randomIndex);
-                const auto& randomFile = loadedFiles[static_cast<std::vector<juce::File>::size_type>(randomIndex)];
-
-                // Add sampler sound from the randomly picked file
-                auto* audioFileReader = mFormatManager.createReaderFor(randomFile);
-                if (audioFileReader != nullptr && audioFileReader->lengthInSamples > 0) {
-                    // Add sampler sound from the randomly picked file
-                    juce::BigInteger range;
-                    range.setRange(0, 128, true); // Set the range of MIDI notes
-                    mSampler.addSound(new juce::SamplerSound("sample", *audioFileReader, range, 60, 0.1, 0.1, 30));
-                }
-                else {
-                    DBG("Error loading file: " << randomFile.getFullPathName());
-                }
-
+            if (auto randomIndex = getRandomFileIndex())
+            {
+                mSampler.noteOn(midiEvent.getChannel(), *randomIndex, midiEvent.getFloatVelocity());
+                setCurrentlyPlayingFileIndex(*randomIndex);
             }
         }
         else if (midiEvent.isNoteOff())
         {
-            // Turn off the note using noteOff()
-            mSampler.noteOff(1, midiEvent.getNoteNumber(), midiEvent.getFloatVelocity(), true);
+            mSampler.allNotesOff(midiEvent.getChannel(), true);
+            setCurrentlyPlayingFileIndex(-1);
         }
     }
 
@@ -256,6 +240,7 @@ void PluginProcessor::loadFiles()
         clearFiles(); // Clear previously loaded files if any
         
         auto files = chooser.getResults();
+        int index = 0;
         
         for (auto file : files)
         {
@@ -264,13 +249,18 @@ void PluginProcessor::loadFiles()
             auto audioFileReader = mFormatManager.createReaderFor(file);
             if (audioFileReader != nullptr)
             {
+                // Set MIDI note on which sound will be played
                 juce::BigInteger range;
-                range.setRange(0, 128, true); // Set the range of MIDI notes
-                // Add sampler sound from loaded file
-                mSampler.addSound (new juce::SamplerSound ("sample", *audioFileReader, range, 60, 0.1, 0.1, 30));
+                range.setRange(index, 1, true);
                 
+                // Create sound and add to sampler
+                auto newSound = new juce::SamplerSound (file.getFileName(), *audioFileReader, range, 0, 0.1, 0.1, 30);
+                mSampler.addSound(newSound);
+
                 // Store the loaded file
                 loadedFiles.push_back(file);
+                
+                index++;
             }
             else
             {
@@ -303,12 +293,7 @@ int PluginProcessor::getCurrentlyPlayingFileIndex() const
 
 void PluginProcessor::clearFiles()
 {
-    // Clear previously loaded files and release resources
-    for (auto& reader : loadedReaders)
-    {
-        reader = nullptr;
-    }
-    loadedReaders.clear();
+    mSampler.clearSounds();
     loadedFiles.clear();
 }
 

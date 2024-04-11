@@ -65,8 +65,6 @@ private:
     
     // Array to store loaded files
     std::vector<juce::File> loadedFiles;
-    // Array to store corresponding readers
-    std::vector<std::unique_ptr<juce::AudioFormatReader>> loadedReaders;
     // Get random file index
     std::optional<int> getRandomFileIndex() const;
     // Get file at index
