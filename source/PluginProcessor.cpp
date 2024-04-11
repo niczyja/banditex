@@ -247,26 +247,6 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 
 
-
-
-void PluginProcessor::loadFile()
-{
-    //method for loading audio files through a openable window
-    juce::FileChooser chooser {"Load File"};
-    if (chooser.browseForFileToOpen())
-    {
-        auto file = chooser.getResult();
-        
-        DBG("loaded file: " << chooser.getURLResult().toString(true));
-        
-        mFormatReader = mFormatManager.createReaderFor (file);
-    }
-    //adding sampler sound from loaded file
-    juce::BigInteger range;
-    range.setRange(0, 128, true);
-    mSampler.addSound (new juce::SamplerSound ("sample", *mFormatReader, range, 60, 0.1, 0.1, 30));
-}
-
 void PluginProcessor::loadFiles()
 {
     // Method for loading audio files through an openable window

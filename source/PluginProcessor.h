@@ -44,8 +44,6 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
     
-    //function for loading a file into the mSampler
-    void loadFile();
     //function for loading multiple file into the mSampler
     void loadFiles();
     //function for clearing all loaded multiple files from loadedFiles array
