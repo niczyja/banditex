@@ -61,6 +61,10 @@ juce_add_plugin("${PROJECT_NAME}"
     # Icons for the standalone app
     ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/packaging/icon.png"
 
+    # Apple sandbox entitlements
+    APP_SANDBOX_ENABLED TRUE
+    APP_SANDBOX_OPTIONS com.apple.security.files.user-selected.read-only
+
     # Change me!
     COMPANY_NAME "${COMPANY_NAME}"
     BUNDLE_ID "${BUNDLE_ID}"
