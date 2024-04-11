@@ -276,23 +276,24 @@ void PluginProcessor::loadFiles()
             {
                 DBG("Error loading file: " << file.getFullPathName());
             }
+
             // Call the updateLoadedFilesListAndHighlight() function of the editor to update the UI
-                    if (auto* editor = dynamic_cast<PluginEditor*>(getActiveEditor()))
-                    {
-                        editor->updateLoadedFilesList();
-                    }
+            if (auto* editor = dynamic_cast<PluginEditor*>(getActiveEditor()))
+            {
+                editor->updateLoadedFilesList();
+            }
         }
     }
 }
 
 void PluginProcessor::setCurrentlyPlayingFileIndex(int newIndex)
 {
-    if (currentlyPlayingFileIndex != newIndex) // Check if the index actually changes
-    {
-        currentlyPlayingFileIndex = newIndex;
-        DBG("Current rnd index: " << newIndex);
-        sendChangeMessage(); // Notify all registered listeners about the change
+    if (currentlyPlayingFileIndex == newIndex) {
+        return;
     }
+    
+    currentlyPlayingFileIndex = newIndex;
+    sendChangeMessage(); // Notify all registered listeners about the change
 }
 
 int PluginProcessor::getCurrentlyPlayingFileIndex() const
