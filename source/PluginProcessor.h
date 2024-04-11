@@ -5,6 +5,7 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <vector>
 #include <memory>
+#include <optional>
 //#include <juce_events/broadcasters/juce_ChangeBroadcaster.h>
 
 #if (MSVC)
@@ -66,6 +67,10 @@ private:
     std::vector<juce::File> loadedFiles;
     // Array to store corresponding readers
     std::vector<std::unique_ptr<juce::AudioFormatReader>> loadedReaders;
+    // Get random file index
+    std::optional<int> getRandomFileIndex() const;
+    // Get file at index
+    std::optional<juce::File> getFileAtIndex (int index) const;
 
     // adding audio format manager
     juce::AudioFormatManager mFormatManager;

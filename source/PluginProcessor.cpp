@@ -321,6 +321,28 @@ juce::StringArray PluginProcessor::getLoadedFilesNames()
     return loadedFilesNames;
 }
 
+std::optional<int> PluginProcessor::getRandomFileIndex() const
+{
+    // Get the number of files in loadedFiles to pick a random index
+    int numFiles = static_cast<int>(loadedFiles.size());
+    
+    if (numFiles == 0) {
+        return std::nullopt;
+    }
+    
+    return juce::Random::getSystemRandom().nextInt(numFiles);
+}
+
+std::optional<juce::File> PluginProcessor::getFileAtIndex (int index) const
+{
+    int numFiles = static_cast<int>(loadedFiles.size());
+    
+    if (index < 0 || index > numFiles - 1) {
+        return std::nullopt;
+    }
+    
+    return loadedFiles[static_cast<std::vector<juce::File>::size_type>(index)];
+}
 
 //==============================================================================
 // This creates new instances of the plugin..
