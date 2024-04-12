@@ -4,14 +4,23 @@
 
 //==============================================================================
 PluginProcessor::PluginProcessor()
-     : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     #endif
-                       )
+     : AudioProcessor 
+        (BusesProperties()
+            #if ! JucePlugin_IsMidiEffect
+            #if ! JucePlugin_IsSynth
+            .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+            #endif
+            .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
+            #endif),
+
+         //adding parameter values for pitch shift, offset and randomisation
+         parameters(*this, nullptr, "Parameters",
+                    {
+            std::make_unique<juce::AudioParameterFloat>("pitchOffset", "Pitch Offset", -24.0f, 24.0f, 0.0f),
+            std::make_unique<juce::AudioParameterFloat>("pitchWheel", "Pitch Wheel", -12.0f, 12.0f, 0.0f),
+            std::make_unique<juce::AudioParameterFloat>("randomPitchRange", "Random Pitch Range", -12.0f, 12.0f, 0.0f)
+                    })
+
 {
     
     mFormatManager.registerBasicFormats();
@@ -151,6 +160,13 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     // In case we have more outputs than inputs, clear any output channels that didn't contain input data
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
+    
+    // Accessing the parameter values of pitch wheel, pitch offset and pitch randomisation
+    auto* pitchOffset = parameters.getRawParameterValue("pitchOffset");
+    auto* pitchWheel = parameters.getRawParameterValue("pitchWheel");
+    auto* randomPitchRange = parameters.getRawParameterValue("randomPitchRange");
+    //pitch wheel, offset and random range handle
+    auto pitchValue = *pitchOffset + *pitchWheel + juce::Random::getSystemRandom().nextFloat() * *randomPitchRange;
 
     // Render next block
     mSampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
