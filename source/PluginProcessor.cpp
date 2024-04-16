@@ -1,10 +1,10 @@
+
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
 
-//==============================================================================
-PluginProcessor::PluginProcessor()
-     : AudioProcessor 
+PluginProcessor::PluginProcessor() 
+    : AudioProcessor
         (BusesProperties()
             #if ! JucePlugin_IsMidiEffect
             #if ! JucePlugin_IsSynth
@@ -12,30 +12,79 @@ PluginProcessor::PluginProcessor()
             #endif
             .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
             #endif
-         )
+        ),
+        mainProcessor(new juce::AudioProcessorGraph()),
+        muteInput(new juce::AudioParameterBool({ "mute", 1 }, "Mute input", false))
 {
+    addParameter(muteInput);
     
-    mFormatManager.registerBasicFormats();
-             
-    //adding parameter values for pitch shift, offset and randomisation
-    addParameter(pitchOffset = new juce::AudioParameterFloat("pitchOffset", "Pitch Offset", -24.0f, 24.0f, 0.0f));
-    addParameter(pitchWheel = new juce::AudioParameterFloat("pitchWheel", "Pitch Wheel", -12.0f, 12.0f, 0.0f));
-    addParameter(randomPitchRange = new juce::AudioParameterFloat("randomPitchRange", "Random Pitch Range", -12.0f, 12.0f, 0.0f));
-    
-    //adding voices for audio playback
-    for (int i = 0; i < mNumVoices; i++)
-    {
-        mSampler.addVoice(new juce::SamplerVoice());
-    }
-    
+    //TODO: this needs to go to initializeGraph() as soon as we figure out clean connection with UI
+    processorNode = mainProcessor->addNode(std::make_unique<TestPlaygroundProcessor>());
 }
 
-PluginProcessor::~PluginProcessor()
+#pragma mark -
+
+bool PluginProcessor::isBusesLayoutSupported(const BusesLayout &layouts) const
 {
-    mFormatReader = nullptr;
+    #if JucePlugin_IsMidiEffect
+        juce::ignoreUnused (layouts);
+        return true;
+    #else
+        if (layouts.getMainInputChannelSet() == juce::AudioChannelSet::disabled()
+            || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::disabled())
+            return false;
+
+        if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+            && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+            return false;
+    
+        #if ! JucePlugin_IsSynth
+            if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
+                return false;
+        #endif
+    
+        return true;
+    #endif
 }
 
-//==============================================================================
+void PluginProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+{
+    mainProcessor->setPlayConfigDetails(getMainBusNumInputChannels(),
+                                        getMainBusNumOutputChannels(),
+                                        sampleRate, samplesPerBlock);
+    
+    mainProcessor->prepareToPlay(sampleRate, samplesPerBlock);
+    initializeGraph();
+}
+
+void PluginProcessor::releaseResources()
+{
+    mainProcessor->releaseResources();
+}
+
+void PluginProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer& midiBuffer)
+{
+    for (int i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i)
+        audioBuffer.clear(i, 0, audioBuffer.getNumSamples());
+    
+    updateGraph();
+    mainProcessor->processBlock(audioBuffer, midiBuffer);
+}
+
+#pragma mark -
+
+juce::AudioProcessorEditor* PluginProcessor::createEditor()
+{
+    //TODO: replace with proper component composition (PluginEditor should layout UI components of other processors)
+    TestPlaygroundProcessor *playgroundProcessor = static_cast<TestPlaygroundProcessor*>(processorNode->getProcessor());
+    return new PluginEditor(*playgroundProcessor);
+}
+
+bool PluginProcessor::hasEditor() const
+{
+    return true;
+}
+
 const juce::String PluginProcessor::getName() const
 {
     return JucePlugin_Name;
@@ -100,122 +149,6 @@ void PluginProcessor::changeProgramName (int index, const juce::String& newName)
     juce::ignoreUnused (index, newName);
 }
 
-//==============================================================================
-void PluginProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
-{
-    //making sure that mSampler uses a correct sample rate defined by DAW
-    mSampler.setCurrentPlaybackSampleRate(sampleRate);
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
-    juce::ignoreUnused (sampleRate, samplesPerBlock);
-}
-
-void PluginProcessor::releaseResources()
-{
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
-}
-
-bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
-{
-  #if JucePlugin_IsMidiEffect
-    juce::ignoreUnused (layouts);
-    return true;
-  #else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
-    // This checks if the input layout matches the output layout
-   #if ! JucePlugin_IsSynth
-    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-        return false;
-   #endif
-
-    return true;
-  #endif
-}
-
-
-
-
-//---------------------------------------------------------------
-//----------------- PROCESS BLOCK -------------------------------
-//---------------------------------------------------------------
-
-
-
-
-void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
-{
-    juce::ScopedNoDenormals noDenormals;
-    auto totalNumInputChannels = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
-
-    // In case we have more outputs than inputs, clear any output channels that didn't contain input data
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
-    
-    // Accessing the parameter values of pitch wheel, pitch offset and pitch randomisation
-    auto pitchValue = *pitchOffset + *pitchWheel + juce::Random::getSystemRandom().nextFloat() * *randomPitchRange;
-
-    // Render next block
-    mSampler.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-
-    // Iterate over incoming MIDI messages
-    for (const auto metadata : midiMessages)
-    {
-        const juce::MidiMessage& midiEvent = metadata.getMessage();
-        
-        if (midiEvent.isNoteOn())
-        {
-            if (auto randomIndex = getRandomFileIndex())
-            {
-                mSampler.noteOn(midiEvent.getChannel(), *randomIndex, midiEvent.getFloatVelocity());
-                setCurrentlyPlayingFileIndex(*randomIndex);
-            }
-        }
-        else if (midiEvent.isNoteOff())
-        {
-            mSampler.allNotesOff(midiEvent.getChannel(), true);
-            setCurrentlyPlayingFileIndex(-1);
-        }
-    }
-
-    // Remove processed MIDI messages
-    midiMessages.clear();
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-        juce::ignoreUnused (channelData);
-        // ..do something to the data...
-    }
-}
-
-
-
-//==============================================================================
-bool PluginProcessor::hasEditor() const
-{
-    return true; // (change this to false if you choose to not supply an editor)
-}
-
-juce::AudioProcessorEditor* PluginProcessor::createEditor()
-{
-    return new PluginEditor (*this);
-}
-
-//==============================================================================
-
 void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
@@ -231,117 +164,54 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
     juce::ignoreUnused (data, sizeInBytes);
 }
 
+#pragma mark -
 
-
-
-//---------------------------------------------------------------
-//---------------------BANDITEX METHODS--------------------------
-//---------------------------------------------------------------
-
-
-
-void PluginProcessor::loadFiles()
+void PluginProcessor::initializeGraph()
 {
-    // Method for loading audio files through an openable window
-    juce::FileChooser chooser {"Load Files"};
-    if (chooser.browseForMultipleFilesToOpen())
-    {
-        clearFiles(); // Clear previously loaded files if any
-        
-        auto files = chooser.getResults();
-        int index = 0;
-        
-        for (auto file : files)
-        {
-            DBG("Loaded file: " << file.getFullPathName());
-            
-            auto audioFileReader = mFormatManager.createReaderFor(file);
-            if (audioFileReader != nullptr)
-            {
-                // Set MIDI note on which sound will be played
-                juce::BigInteger range;
-                range.setRange(index, 1, true);
-                
-                // Create sound and add to sampler
-                auto newSound = new juce::SamplerSound (file.getFileName(), *audioFileReader, range, 0, 0.1, 0.1, 30);
-                mSampler.addSound(newSound);
-
-                // Store the loaded file
-                loadedFiles.push_back(file);
-                
-                index++;
-            }
-            else
-            {
-                DBG("Error loading file: " << file.getFullPathName());
-            }
-
-            // Call the updateLoadedFilesListAndHighlight() function of the editor to update the UI
-            if (auto* editor = dynamic_cast<PluginEditor*>(getActiveEditor()))
-            {
-                editor->updateLoadedFilesList();
-            }
-        }
-    }
-}
-
-void PluginProcessor::setCurrentlyPlayingFileIndex(int newIndex)
-{
-    if (currentlyPlayingFileIndex == newIndex) {
-        return;
-    }
+    //TODO: this needs to come back as soon as we figure out clean connection with UI
+    //    mainProcessor->clear();
     
-    currentlyPlayingFileIndex = newIndex;
-    sendChangeMessage(); // Notify all registered listeners about the change
-}
+    audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
+    audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
+    midiInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiInputNode));
+    midiOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiOutputNode));
+    
+    processorNode->getProcessor()->setPlayConfigDetails(getMainBusNumInputChannels(), getMainBusNumOutputChannels(),
+                                                        getSampleRate(), getBlockSize());
 
-int PluginProcessor::getCurrentlyPlayingFileIndex() const
-{
-    return currentlyPlayingFileIndex;
-}
-
-void PluginProcessor::clearFiles()
-{
-    mSampler.clearSounds();
-    loadedFiles.clear();
-}
-
-juce::StringArray PluginProcessor::getLoadedFilesNames()
-{
-    juce::StringArray loadedFilesNames;
-    for (const auto& file : loadedFiles)
-    {
-        loadedFilesNames.add(file.getFileName());
+    for (int ch = 0; ch < 2; ++ch) {
+        mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { processorNode->nodeID, ch } });
+        mainProcessor->addConnection({ { processorNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
     }
-    return loadedFilesNames;
+
+    connectMidiNodes();
+
+    for (auto node: mainProcessor->getNodes())
+        node->getProcessor()->enableAllBuses();
 }
 
-std::optional<int> PluginProcessor::getRandomFileIndex() const
+void PluginProcessor::updateGraph()
 {
-    // Get the number of files in loadedFiles to pick a random index
-    int numFiles = static_cast<int>(loadedFiles.size());
+    //TODO: here we can update connections between audio processors
     
-    if (numFiles == 0) {
-        return std::nullopt;
-    }
-    
-    return juce::Random::getSystemRandom().nextInt(numFiles);
+    audioInputNode->setBypassed(muteInput->get());
 }
 
-std::optional<juce::File> PluginProcessor::getFileAtIndex (int index) const
+void PluginProcessor::connectAudioNodes()
 {
-    int numFiles = static_cast<int>(loadedFiles.size());
+    // default connection bypassing all processors, just input connected to output
     
-    if (index < 0 || index > numFiles - 1) {
-        return std::nullopt;
-    }
-    
-    return loadedFiles[static_cast<std::vector<juce::File>::size_type>(index)];
+    for (int ch = 0; ch < 2; ++ch)
+        mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
 }
 
-//==============================================================================
-// This creates new instances of the plugin..
+void PluginProcessor::connectMidiNodes()
+{
+    auto ch = juce::AudioProcessorGraph::midiChannelIndex;
+    mainProcessor->addConnection({ { midiInputNode->nodeID, ch }, { midiOutputNode->nodeID, ch } });
+}
 
+#pragma mark -
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
