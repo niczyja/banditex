@@ -11,19 +11,16 @@ PluginProcessor::PluginProcessor()
             .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
             #endif
             .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-            #endif),
-
-         //adding parameter values for pitch shift, offset and randomisation
-         parameters(*this, nullptr, "Parameters",
-                    {
-            std::make_unique<juce::AudioParameterFloat>("pitchOffset", "Pitch Offset", -24.0f, 24.0f, 0.0f),
-            std::make_unique<juce::AudioParameterFloat>("pitchWheel", "Pitch Wheel", -12.0f, 12.0f, 0.0f),
-            std::make_unique<juce::AudioParameterFloat>("randomPitchRange", "Random Pitch Range", -12.0f, 12.0f, 0.0f)
-                    })
-
+            #endif
+         )
 {
     
     mFormatManager.registerBasicFormats();
+             
+    //adding parameter values for pitch shift, offset and randomisation
+    addParameter(pitchOffset = new juce::AudioParameterFloat("pitchOffset", "Pitch Offset", -24.0f, 24.0f, 0.0f));
+    addParameter(pitchWheel = new juce::AudioParameterFloat("pitchWheel", "Pitch Wheel", -12.0f, 12.0f, 0.0f));
+    addParameter(randomPitchRange = new juce::AudioParameterFloat("randomPitchRange", "Random Pitch Range", -12.0f, 12.0f, 0.0f));
     
     //adding voices for audio playback
     for (int i = 0; i < mNumVoices; i++)
@@ -162,10 +159,6 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         buffer.clear(i, 0, buffer.getNumSamples());
     
     // Accessing the parameter values of pitch wheel, pitch offset and pitch randomisation
-    auto* pitchOffset = parameters.getRawParameterValue("pitchOffset");
-    auto* pitchWheel = parameters.getRawParameterValue("pitchWheel");
-    auto* randomPitchRange = parameters.getRawParameterValue("randomPitchRange");
-    //pitch wheel, offset and random range handle
     auto pitchValue = *pitchOffset + *pitchWheel + juce::Random::getSystemRandom().nextFloat() * *randomPitchRange;
 
     // Render next block

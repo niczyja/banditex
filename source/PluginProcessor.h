@@ -74,5 +74,10 @@ private:
     juce::AudioFormatManager mFormatManager;
     juce::AudioFormatReader* mFormatReader { nullptr };
     
+    // adding parameter values for pitch shift, offset and randomisation
+    juce::AudioParameterFloat* pitchOffset;
+    juce::AudioParameterFloat* pitchWheel;
+    juce::AudioParameterFloat* randomPitchRange;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };
