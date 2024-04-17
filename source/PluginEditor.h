@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PluginProcessor.h"
 #include "TestPlaygroundProcessor.h"
 #include "BinaryData.h"
 #include "melatonin_inspector/melatonin_inspector.h"
