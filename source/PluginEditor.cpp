@@ -36,6 +36,7 @@ PluginEditor::PluginEditor(PluginProcessor& p)
 PluginEditor::~PluginEditor()
 {
     pluginProcessor.mainProcessor->removeChangeListener(this);
+    procComp.deleteAllChildren();
 }
 
 #pragma mark -
