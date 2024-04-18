@@ -1,7 +1,6 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "TestPlaygroundProcessor.h"
 
 #if (MSVC)
 #include "ipps.h"
@@ -40,17 +39,16 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
     
-private:
     std::unique_ptr<juce::AudioProcessorGraph> mainProcessor;
-
     juce::AudioParameterBool* muteInput;
     
+private:
     Node::Ptr audioInputNode;
     Node::Ptr audioOutputNode;
     Node::Ptr midiInputNode;
     Node::Ptr midiOutputNode;
 
-    Node::Ptr processorNode;
+    std::vector<Node::Ptr> processorNodes;
     
     void initializeGraph();
     void updateGraph();

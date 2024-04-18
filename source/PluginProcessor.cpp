@@ -1,50 +1,35 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "LevelProcessor.h"
+#include "GainProcessor.h"
 
 
 PluginProcessor::PluginProcessor() 
     : AudioProcessor
         (BusesProperties()
-            #if ! JucePlugin_IsMidiEffect
-            #if ! JucePlugin_IsSynth
-            .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-            #endif
-            .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-            #endif
+            .withInput("Input", juce::AudioChannelSet::stereo(), true)
+            .withOutput("Output", juce::AudioChannelSet::stereo(), true)
         ),
         mainProcessor(new juce::AudioProcessorGraph()),
         muteInput(new juce::AudioParameterBool({ "mute", 1 }, "Mute input", false))
 {
     addParameter(muteInput);
-    
-    //TODO: this needs to go to initializeGraph() as soon as we figure out clean connection with UI
-    processorNode = mainProcessor->addNode(std::make_unique<TestPlaygroundProcessor>());
 }
 
 #pragma mark -
 
 bool PluginProcessor::isBusesLayoutSupported(const BusesLayout &layouts) const
 {
-    #if JucePlugin_IsMidiEffect
-        juce::ignoreUnused (layouts);
-        return true;
-    #else
-        if (layouts.getMainInputChannelSet() == juce::AudioChannelSet::disabled()
-            || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::disabled())
-            return false;
-
-        if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-            && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-            return false;
+    if (layouts.getMainInputChannelSet() == juce::AudioChannelSet::disabled()
+        || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::disabled())
+        return false;
     
-        #if ! JucePlugin_IsSynth
-            if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-                return false;
-        #endif
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+        return false;
     
-        return true;
-    #endif
+    return layouts.getMainInputChannelSet() == layouts.getMainOutputChannelSet();
 }
 
 void PluginProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -75,9 +60,7 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer, juce::
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()
 {
-    //TODO: replace with proper component composition (PluginEditor should layout UI components of other processors)
-    TestPlaygroundProcessor *playgroundProcessor = static_cast<TestPlaygroundProcessor*>(processorNode->getProcessor());
-    return new PluginEditor(*playgroundProcessor);
+    return new PluginEditor(*this);
 }
 
 bool PluginProcessor::hasEditor() const
@@ -168,22 +151,24 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 void PluginProcessor::initializeGraph()
 {
-    //TODO: this needs to come back as soon as we figure out clean connection with UI
-    //    mainProcessor->clear();
+    processorNodes.clear();
+    mainProcessor->clear();
     
     audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
     audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
     midiInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiInputNode));
     midiOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiOutputNode));
     
-    processorNode->getProcessor()->setPlayConfigDetails(getMainBusNumInputChannels(), getMainBusNumOutputChannels(),
-                                                        getSampleRate(), getBlockSize());
-
-    for (int ch = 0; ch < 2; ++ch) {
-        mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { processorNode->nodeID, ch } });
-        mainProcessor->addConnection({ { processorNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
-    }
-
+    processorNodes.push_back(mainProcessor->addNode(std::make_unique<GainProcessor>()));
+    processorNodes.push_back(mainProcessor->addNode(std::make_unique<LevelProcessor>()));
+    
+    for (auto node : mainProcessor->getNodes())
+        node->getProcessor()->setPlayConfigDetails(mainProcessor->getMainBusNumInputChannels(),
+                                                   mainProcessor->getMainBusNumOutputChannels(),
+                                                   mainProcessor->getSampleRate(),
+                                                   mainProcessor->getBlockSize());
+    
+    connectAudioNodes();
     connectMidiNodes();
 
     for (auto node: mainProcessor->getNodes())
@@ -199,10 +184,28 @@ void PluginProcessor::updateGraph()
 
 void PluginProcessor::connectAudioNodes()
 {
-    // default connection bypassing all processors, just input connected to output
-    
-    for (int ch = 0; ch < 2; ++ch)
-        mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
+    for (int ch = 0; ch < mainProcessor->getMainBusNumInputChannels(); ++ch)
+    {
+        switch (processorNodes.size()) {
+            case 0:
+                mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
+                break;
+            case 1:
+                mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { processorNodes.front()->nodeID, ch } });
+                mainProcessor->addConnection({ { processorNodes.front()->nodeID, ch }, { audioOutputNode->nodeID, ch } });
+                break;
+                
+            default:
+                Node::Ptr previousNode = audioInputNode;
+                for (auto node : processorNodes)
+                {
+                    mainProcessor->addConnection({ { previousNode->nodeID, ch }, { node->nodeID, ch } });
+                    previousNode = node;
+                }
+                mainProcessor->addConnection({ { previousNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
+                break;
+        }
+    }
 }
 
 void PluginProcessor::connectMidiNodes()
