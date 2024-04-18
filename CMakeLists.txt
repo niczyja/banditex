@@ -65,6 +65,13 @@ juce_add_plugin("${PROJECT_NAME}"
     APP_SANDBOX_ENABLED TRUE
     APP_SANDBOX_OPTIONS com.apple.security.files.user-selected.read-only
 
+    # Microphone permissions
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT "All your mics are belong to us"
+
+    # Apple hardened runtime
+    HARDENED_RUNTIME_ENABLED TRUE
+
     # Change me!
     COMPANY_NAME "${COMPANY_NAME}"
     BUNDLE_ID "${BUNDLE_ID}"
