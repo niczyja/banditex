@@ -39,7 +39,8 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override { juce::ignoreUnused (destData); }
     void setStateInformation (const void* data, int sizeInBytes) override { juce::ignoreUnused (data, sizeInBytes); }
     
-private:
     juce::AudioParameterBool* bypass;
+
+private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ProcessorBase)
 };

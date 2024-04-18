@@ -179,6 +179,9 @@ void PluginProcessor::updateGraph()
 {
     //TODO: here we can update connections between audio processors
     
+    for (auto node : processorNodes)
+        node->setBypassed(static_cast<ProcessorBase*>(node->getProcessor())->bypass->get());
+
     audioInputNode->setBypassed(muteInput->get());
 }
 
