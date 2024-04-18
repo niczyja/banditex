@@ -15,6 +15,14 @@ PluginProcessor::PluginProcessor()
         muteInput(new juce::AudioParameterBool({ "mute", 1 }, "Mute input", false))
 {
     addParameter(muteInput);
+    
+    audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
+    audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
+    midiInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiInputNode));
+    midiOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiOutputNode));
+    
+    processorNodes.push_back(mainProcessor->addNode(std::make_unique<GainProcessor>()));
+    processorNodes.push_back(mainProcessor->addNode(std::make_unique<LevelProcessor>()));
 }
 
 #pragma mark -
@@ -151,16 +159,8 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 void PluginProcessor::initializeGraph()
 {
-    processorNodes.clear();
-    mainProcessor->clear();
-    
-    audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
-    audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
-    midiInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiInputNode));
-    midiOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiOutputNode));
-    
-    processorNodes.push_back(mainProcessor->addNode(std::make_unique<GainProcessor>()));
-    processorNodes.push_back(mainProcessor->addNode(std::make_unique<LevelProcessor>()));
+    for (auto connection : mainProcessor->getConnections())
+        mainProcessor->removeConnection(connection);
     
     for (auto node : mainProcessor->getNodes())
         node->getProcessor()->setPlayConfigDetails(mainProcessor->getMainBusNumInputChannels(),
