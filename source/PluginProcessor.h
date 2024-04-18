@@ -40,14 +40,13 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
     
     std::unique_ptr<juce::AudioProcessorGraph> mainProcessor;
-    juce::AudioParameterBool* muteInput;
-    
 private:
+    juce::AudioParameterBool* muteInput;
+
     Node::Ptr audioInputNode;
     Node::Ptr audioOutputNode;
     Node::Ptr midiInputNode;
     Node::Ptr midiOutputNode;
-
     std::vector<Node::Ptr> processorNodes;
     
     void initializeGraph();
