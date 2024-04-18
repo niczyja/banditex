@@ -4,7 +4,7 @@
 
 GainProcessor::GainProcessor()
     : ProcessorBase(),
-    gain(new juce::AudioParameterFloat("gain", "Gain", -6.0f, 6.0f, 1.0f))
+    gain(new juce::AudioParameterFloat({ "gain", 1 }, "Gain", 0.0f, 2.0f, 1.0f))
 {
     addParameter(gain);
 }

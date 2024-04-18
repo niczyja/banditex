@@ -4,7 +4,7 @@
 
 LevelProcessor::LevelProcessor()
     : ProcessorBase(),
-    level(new juce::AudioParameterFloat("level", "Level", 0.0f, 2.0f, 1.0f))
+    level(new juce::AudioParameterFloat({ "level", 1 }, "Level", 0.0f, 2.0f, 1.0f))
 {
     addParameter(level);
 }
