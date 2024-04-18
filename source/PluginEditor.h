@@ -19,8 +19,8 @@ private:
     std::unique_ptr<melatonin::Inspector> inspector;
     std::unique_ptr<juce::TextButton> inspectButton;
     
-    juce::Component header { "Global" };
-    juce::Component processors { "Processors" };
+    juce::Component headerComp { "Global" };
+    juce::Component procComp { "Processors" };
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginEditor)
 };

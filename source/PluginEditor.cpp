@@ -7,9 +7,9 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     globalParams(new juce::GenericAudioProcessorEditor(p)),
     inspectButton(new juce::TextButton("Inspect the UI"))
 {
-    header.addAndMakeVisible(*globalParams);
-    header.addAndMakeVisible(*inspectButton);
-    addAndMakeVisible(header);
+    headerComp.addAndMakeVisible(*globalParams);
+    headerComp.addAndMakeVisible(*inspectButton);
+    addAndMakeVisible(headerComp);
     
     inspectButton->onClick = [&] {
         if (!inspector)
@@ -23,8 +23,8 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     
     for (auto node : p.mainProcessor->getNodes())
         if (node->getProcessor()->hasEditor())
-            processors.addAndMakeVisible(node->getProcessor()->createEditor());
-    addAndMakeVisible(processors);
+            procComp.addAndMakeVisible(node->getProcessor()->createEditor());
+    addAndMakeVisible(procComp);
     
     setSize (500, 600);
     setResizable(true, true);
@@ -39,14 +39,14 @@ void PluginEditor::resized()
 {
     auto area = getLocalBounds();
     
-    header.setBounds(area.removeFromTop(40));
-    globalParams->setBounds(header.getLocalBounds().removeFromLeft(area.getCentreX()));
-    inspectButton->setBounds(header.getLocalBounds().removeFromRight(area.getCentreX()).reduced(10));
+    headerComp.setBounds(area.removeFromTop(40));
+    globalParams->setBounds(headerComp.getLocalBounds().removeFromLeft(area.getCentreX()));
+    inspectButton->setBounds(headerComp.getLocalBounds().removeFromRight(area.getCentreX()).reduced(10));
     
-    processors.setBounds(area);
-    auto procArea = processors.getLocalBounds();
-    for (auto procComp : processors.getChildren())
-        procComp->setBounds(procArea.removeFromTop(procComp->getHeight()));
+    procComp.setBounds(area);
+    auto procArea = procComp.getLocalBounds();
+    for (auto component : procComp.getChildren())
+        component->setBounds(procArea.removeFromTop(component->getHeight()));
 }
 
 void PluginEditor::paint (juce::Graphics& g)
