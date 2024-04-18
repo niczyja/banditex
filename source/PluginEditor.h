@@ -15,6 +15,8 @@ public:
     void resized() override;
 
 private:
+    PluginProcessor& pluginProcessor;
+    
     std::unique_ptr<juce::GenericAudioProcessorEditor> globalParams;
     std::unique_ptr<melatonin::Inspector> inspector;
     std::unique_ptr<juce::TextButton> inspectButton;

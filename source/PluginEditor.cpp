@@ -3,7 +3,7 @@
 
 
 PluginEditor::PluginEditor(PluginProcessor& p)
-    : AudioProcessorEditor(&p),
+    : AudioProcessorEditor(&p), pluginProcessor(p),
     globalParams(new juce::GenericAudioProcessorEditor(p)),
     inspectButton(new juce::TextButton("Inspect the UI"))
 {
@@ -21,7 +21,7 @@ PluginEditor::PluginEditor(PluginProcessor& p)
         inspector->setVisible (true);
     };
     
-    for (auto node : p.mainProcessor->getNodes())
+    for (auto node : pluginProcessor.mainProcessor->getNodes())
         if (node->getProcessor()->hasEditor())
             procComp.addAndMakeVisible(node->getProcessor()->createEditor());
     addAndMakeVisible(procComp);
