@@ -7,6 +7,8 @@ PluginEditor::PluginEditor(PluginProcessor& p)
     globalParams(new juce::GenericAudioProcessorEditor(p)),
     inspectButton(new juce::TextButton("Inspect the UI"))
 {
+    pluginProcessor.mainProcessor->addChangeListener(this);
+    
     headerComp.addAndMakeVisible(*globalParams);
     headerComp.addAndMakeVisible(*inspectButton);
     addAndMakeVisible(headerComp);
@@ -33,7 +35,18 @@ PluginEditor::PluginEditor(PluginProcessor& p)
 
 PluginEditor::~PluginEditor()
 {
+    pluginProcessor.mainProcessor->removeChangeListener(this);
 }
+
+#pragma mark -
+
+void PluginEditor::changeListenerCallback(juce::ChangeBroadcaster* source)
+{
+    //TODO: here we can catch AudioProcessorGraph changes
+    juce::ignoreUnused(source);
+}
+
+#pragma mark -
 
 void PluginEditor::resized()
 {

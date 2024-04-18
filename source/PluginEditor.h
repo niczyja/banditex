@@ -5,12 +5,14 @@
 #include "BinaryData.h"
 
 
-class PluginEditor : public juce::AudioProcessorEditor
+class PluginEditor : public juce::AudioProcessorEditor,
+                     public juce::ChangeListener
 {
 public:
     explicit PluginEditor (PluginProcessor&);
     ~PluginEditor() override;
 
+    void changeListenerCallback (juce::ChangeBroadcaster* source) override;
     void paint (juce::Graphics&) override;
     void resized() override;
 
