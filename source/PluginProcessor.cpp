@@ -1,8 +1,8 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "LevelProcessor.h"
-#include "GainProcessor.h"
+#include "processors/LevelProcessor.h"
+#include "processors/GainProcessor.h"
 
 
 PluginProcessor::PluginProcessor() 
