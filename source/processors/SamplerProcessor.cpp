@@ -91,9 +91,24 @@ void SamplerProcessor::readFiles(juce::Array<juce::File>& files)
         if (reader.get() == nullptr)
             continue;
         
+        juce::AudioSampleBuffer tempBuffer;
         juce::AudioSampleBuffer fileBuffer;
-        fileBuffer.setSize((int) reader->numChannels, (int) reader->lengthInSamples);
-        reader->read(&fileBuffer, 0, (int) reader->lengthInSamples, 0, true, true);
+        
+        tempBuffer.clear();
+        fileBuffer.clear();
+        double speedRatio = reader->sampleRate / getSampleRate();
+        
+        tempBuffer.setSize((int) reader->numChannels, (int) reader->lengthInSamples);
+        fileBuffer.setSize((int) reader->numChannels, (int) (reader->lengthInSamples / speedRatio));
+
+        reader->read(&tempBuffer, 0, (int) reader->lengthInSamples, 0, true, true);
+        
+        for (int ch = 0; ch < (int) reader->numChannels; ++ch)
+        {
+            std::unique_ptr<juce::LagrangeInterpolator> resampler (new juce::LagrangeInterpolator());
+            resampler->process(speedRatio, *tempBuffer.getArrayOfReadPointers(), *fileBuffer.getArrayOfWritePointers(), fileBuffer.getNumSamples());
+        }
+        
         fileBuffers.push_back(fileBuffer);
     }
     
