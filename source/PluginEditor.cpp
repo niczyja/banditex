@@ -3,7 +3,7 @@
 
 
 PluginEditor::PluginEditor(PluginProcessor& p)
-    : AudioProcessorEditor(&p), pluginProcessor(p),
+    : juce::AudioProcessorEditor(&p), pluginProcessor(p),
     globalParams(new juce::GenericAudioProcessorEditor(p)),
     inspectButton(new juce::TextButton("Inspect the UI"))
 {
@@ -28,9 +28,7 @@ PluginEditor::PluginEditor(PluginProcessor& p)
             procComp.addAndMakeVisible(node->getProcessor()->createEditor());
     addAndMakeVisible(procComp);
     
-    setSize (500, 600);
-    setResizable(true, true);
-    setResizeLimits(400, 400, 1000, 1000);
+    setSize (600, 800);
 }
 
 PluginEditor::~PluginEditor()

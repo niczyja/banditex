@@ -1,6 +1,8 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+
+#include "processors/SamplerProcessor.h"
 #include "processors/LevelProcessor.h"
 #include "processors/GainProcessor.h"
 
@@ -20,7 +22,8 @@ PluginProcessor::PluginProcessor()
     audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
     midiInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiInputNode));
     midiOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiOutputNode));
-    
+
+    processorNodes.push_back(mainProcessor->addNode(std::make_unique<SamplerProcessor>()));
     processorNodes.push_back(mainProcessor->addNode(std::make_unique<GainProcessor>()));
     processorNodes.push_back(mainProcessor->addNode(std::make_unique<LevelProcessor>()));
 }
