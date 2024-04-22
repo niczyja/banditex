@@ -127,6 +127,9 @@ bool SamplerProcessor::getIsShuffling()
 
 void SamplerProcessor::setIsShuffling(bool shouldShuffle)
 {
+    bool wasSuspended = isSuspended();
+    suspendProcessing(true);
+    position = 0;
     bufferOrder.clear();
     
     for (int i = 0; i < (int) fileBuffers.size(); ++i)
@@ -136,6 +139,7 @@ void SamplerProcessor::setIsShuffling(bool shouldShuffle)
         std::shuffle(bufferOrder.begin(), bufferOrder.end(), std::mt19937());
     
     isShuffling = shouldShuffle;
+    suspendProcessing(wasSuspended);
 }
 
 void SamplerProcessor::advanceBufferIndex()
