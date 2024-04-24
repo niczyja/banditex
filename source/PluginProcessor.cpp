@@ -25,8 +25,6 @@ PluginProcessor::PluginProcessor()
     midiOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiOutputNode));
 
     processorNodes.push_back(mainProcessor->addNode(std::make_unique<SamplerProcessor>()));
-    processorNodes.push_back(mainProcessor->addNode(std::make_unique<GainProcessor>()));
-    processorNodes.push_back(mainProcessor->addNode(std::make_unique<LevelProcessor>()));
 }
 
 #pragma mark -
