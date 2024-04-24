@@ -10,11 +10,8 @@ public:
             (BusesProperties()
                 .withInput("Input", juce::AudioChannelSet::stereo(), true)
                 .withOutput("Output", juce::AudioChannelSet::stereo(), true)
-            ),
-            bypass(new juce::AudioParameterBool({ "bypass", 1 }, "Bypass", false))
-    {
-        addParameter(bypass);
-    }
+             )
+    {}
     
     void prepareToPlay (double sampleRate, int samplesPerBlock) override { juce::ignoreUnused (sampleRate, samplesPerBlock); }
     void releaseResources() override {}
@@ -39,8 +36,6 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override { juce::ignoreUnused (destData); }
     void setStateInformation (const void* data, int sizeInBytes) override { juce::ignoreUnused (data, sizeInBytes); }
     
-    juce::AudioParameterBool* bypass;
-
 private:
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ProcessorBase)
 };

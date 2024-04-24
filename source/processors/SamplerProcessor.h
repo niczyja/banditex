@@ -5,10 +5,11 @@
 #include "ProcessorBase.h"
 
 
-class SamplerProcessor : public ProcessorBase
+class SamplerProcessor : public ProcessorBase, juce::AudioProcessorValueTreeState::Listener
 {
 public:
     SamplerProcessor();
+    ~SamplerProcessor() override;
     
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -16,14 +17,11 @@ public:
     void reset() override;
     
     juce::AudioProcessorEditor* createEditor() override;
+    juce::AudioProcessorParameter* getBypassParameter() const override;
     const juce::String getName() const override;
-
-    bool isPlaying = false;
-    bool isLooping = false;
-
-    bool getIsShuffling();
-    void setIsShuffling(bool shouldShuffle);
     
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
+
     int getCurrentSampleIndex();
     void readFiles(juce::Array<juce::File>& files);
     
@@ -38,6 +36,7 @@ private:
         bool operator < (const SampleSpec& rhs) const { return start < rhs.start; }
     };
     
+    juce::AudioProcessorValueTreeState parameters;
     juce::AudioFormatManager formatManager;
     juce::AudioSampleBuffer samplesBuffer;
     std::vector<SampleSpec> samplesSpecs;
@@ -45,8 +44,7 @@ private:
     int currentPosition = 0;
     int currentSampleIndex = -1;
     void advanceToNextSample();
-    
-    bool isShuffling = false;
-    
+    void setIsShuffling(bool shouldShuffle);
+        
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplerProcessor)
 };

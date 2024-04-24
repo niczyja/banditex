@@ -2,10 +2,14 @@
 #include "SamplerEditor.h"
 
 
-SamplerEditor::SamplerEditor(SamplerProcessor& p)
-    : AudioProcessorEditor(&p), samplerProcessor(p)
+SamplerEditor::SamplerEditor(SamplerProcessor& p, juce::AudioProcessorValueTreeState& vst)
+    : AudioProcessorEditor(&p), samplerProcessor(p), params(vst)
 {
     samplerProcessor.addChangeListener(this);
+    
+    addAndMakeVisible(bypassToggle);
+    bypassToggle.setButtonText("Bypass");
+    bypassAttachment.reset(new ButtonAttachment(params, "bypass", bypassToggle));
     
     addAndMakeVisible(playStopButton);
     playStopButton.setButtonText("Play");
@@ -15,12 +19,12 @@ SamplerEditor::SamplerEditor(SamplerProcessor& p)
     addAndMakeVisible(shuffleButton);
     shuffleButton.setButtonText("Shuffle");
     shuffleButton.setClickingTogglesState(true);
-    shuffleButton.onClick = [this] { shuffleButtonClicked(); };
+    shuffleAttachment.reset(new ButtonAttachment(params, "shuffle", shuffleButton));
     
     addAndMakeVisible(loopButton);
     loopButton.setButtonText("Loop");
     loopButton.setClickingTogglesState(true);
-    loopButton.onClick = [this] { loopButtonClicked(); };
+    loopAttachment.reset(new ButtonAttachment(params, "loop", loopButton));
     
     addAndMakeVisible(openButton);
     openButton.setButtonText("Choose files...");
@@ -33,6 +37,26 @@ SamplerEditor::SamplerEditor(SamplerProcessor& p)
     addAndMakeVisible(filesList);
     filesList.setModel(this);
     filesList.setClickingTogglesRowSelection(false);
+    
+    addAndMakeVisible(pitchSlider);
+    pitchSlider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
+    pitchSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::NoTextBox, true, 0, 0);
+    pitchAttachment.reset(new SliderAttachment(params, "pitch", pitchSlider));
+    
+    addAndMakeVisible(pitchLabel);
+    pitchLabel.setFont({ 11.0f });
+    pitchLabel.setJustificationType(juce::Justification::centred);
+    pitchLabel.setText("PITCH", juce::NotificationType::dontSendNotification);
+
+    addAndMakeVisible(levelSlider);
+    levelSlider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
+    levelSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::NoTextBox, true, 0, 0);
+    levelAttachment.reset(new SliderAttachment(params, "level", levelSlider));
+    
+    addAndMakeVisible(levelLabel);
+    levelLabel.setFont({ 11.0f });
+    levelLabel.setJustificationType(juce::Justification::centred);
+    levelLabel.setText("LEVEL", juce::NotificationType::dontSendNotification);
     
     setSize(300, 200);
 }
@@ -48,8 +72,6 @@ SamplerEditor::~SamplerEditor()
 void SamplerEditor::changeListenerCallback (juce::ChangeBroadcaster*)
 {
     playStopButton.setToggleState(!samplerProcessor.isSuspended(), juce::NotificationType::dontSendNotification);
-    shuffleButton.setToggleState(samplerProcessor.getIsShuffling(), juce::NotificationType::dontSendNotification);
-    loopButton.setToggleState(samplerProcessor.isLooping, juce::NotificationType::dontSendNotification);
     
     if (!samplerProcessor.isSuspended() && samplerProcessor.getCurrentSampleIndex() > -1)
         filesList.selectRow(samplerProcessor.getCurrentSampleIndex());
@@ -61,20 +83,29 @@ void SamplerEditor::resized()
 {
     auto area = getLocalBounds();
     auto buttons = area.removeFromTop(40);
-    auto buttonWidth = area.getWidth() / 5;
+    auto buttonWidth = area.getWidth() / 6;
     
+    bypassToggle.setBounds(buttons.removeFromLeft(buttonWidth).reduced(10));
     playStopButton.setBounds(buttons.removeFromLeft(buttonWidth).reduced(10));
     shuffleButton.setBounds(buttons.removeFromLeft(buttonWidth).reduced(10));
     loopButton.setBounds(buttons.removeFromLeft(buttonWidth).reduced(10));
     openButton.setBounds(buttons.removeFromLeft(buttonWidth).reduced(10));
     clearButton.setBounds(buttons.reduced(10));
     
+    auto level = area.removeFromRight(40);
+    levelLabel.setBounds(level.removeFromBottom(20));
+    levelSlider.setBounds(level);
+    
+    auto pitch = area.removeFromRight(40);
+    pitchLabel.setBounds(pitch.removeFromBottom(20));
+    pitchSlider.setBounds(pitch);
+    
     filesList.setBounds(area);
 }
 
 void SamplerEditor::paint(juce::Graphics &g)
 {
-    g.fillAll(juce::LookAndFeel::getDefaultLookAndFeel().findColour(juce::ListBox::backgroundColourId));
+    juce::ignoreUnused(g);
 }
 
 #pragma mark -
@@ -105,16 +136,6 @@ void SamplerEditor::playStopButtonClicked()
     }
     
     samplerProcessor.suspendProcessing(!playStopButton.getToggleState());
-}
-
-void SamplerEditor::shuffleButtonClicked()
-{
-    samplerProcessor.setIsShuffling(shuffleButton.getToggleState());
-}
-
-void SamplerEditor::loopButtonClicked()
-{
-    samplerProcessor.isLooping = loopButton.getToggleState();
 }
 
 void SamplerEditor::openButtonClicked()

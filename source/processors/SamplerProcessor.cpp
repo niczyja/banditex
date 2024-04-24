@@ -7,8 +7,22 @@
 
 
 SamplerProcessor::SamplerProcessor()
+    : ProcessorBase(),
+    parameters(*this, nullptr, juce::Identifier ("Sampler Parameters"), {
+        std::make_unique<juce::AudioParameterBool> (juce::ParameterID ("bypass", 1), "Bypass", false),
+        std::make_unique<juce::AudioParameterBool> (juce::ParameterID ("loop", 1), "Loop", false),
+        std::make_unique<juce::AudioParameterBool> (juce::ParameterID ("shuffle", 1), "Shuffle", false),
+        std::make_unique<juce::AudioParameterFloat> (juce::ParameterID ("pitch", 1), "Pitch", -2.5f, 2.5f, 0.0f),
+        std::make_unique<juce::AudioParameterFloat> (juce::ParameterID ("level", 1), "Level", 0.0f, 1.0f, 0.75f)
+    })
 {
     formatManager.registerBasicFormats();
+    parameters.addParameterListener("shuffle", this);
+}
+
+SamplerProcessor::~SamplerProcessor()
+{
+    parameters.removeParameterListener("shuffle", this);
 }
 
 void SamplerProcessor::prepareToPlay (double, int)
@@ -24,6 +38,9 @@ void SamplerProcessor::releaseResources()
 
 void SamplerProcessor::processBlock (juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer&)
 {
+    if (getBypassParameter()->getValue() > 0.5f)
+        return;
+    
     if (currentSampleIndex == -1)
         advanceToNextSample();
 
@@ -55,6 +72,10 @@ void SamplerProcessor::processBlock (juce::AudioBuffer<float>& audioBuffer, juce
             }
         }
     }
+    
+    for (int ch = 0; ch < audioBuffer.getNumChannels(); ++ch)
+        for (int sample = 0; sample < audioBuffer.getNumSamples(); ++sample)
+            audioBuffer.setSample(ch, sample, audioBuffer.getSample(ch, sample) * *parameters.getRawParameterValue("level"));
 }
 
 void SamplerProcessor::reset()
@@ -71,12 +92,25 @@ void SamplerProcessor::reset()
 
 juce::AudioProcessorEditor* SamplerProcessor::createEditor()
 {
-    return new SamplerEditor(*this);
+    return new SamplerEditor(*this, this->parameters);
+}
+
+juce::AudioProcessorParameter* SamplerProcessor::getBypassParameter() const
+{
+    return parameters.getParameter("bypass");
 }
 
 const juce::String SamplerProcessor::getName() const
 {
     return "Sampler";
+}
+
+#pragma mark -
+
+void SamplerProcessor::parameterChanged(const juce::String& parameterID, float newValue)
+{
+    if (parameterID == "shuffle")
+        setIsShuffling(newValue > 0.5f);
 }
 
 #pragma mark -
@@ -111,7 +145,7 @@ void SamplerProcessor::readFiles(juce::Array<juce::File>& files)
         samplesSpecs.push_back(sample);
     }
     
-    setIsShuffling(isShuffling);
+    setIsShuffling(*parameters.getRawParameterValue("shuffle") > 0.5f);
 }
 
 int SamplerProcessor::getCurrentSampleIndex()
@@ -120,11 +154,6 @@ int SamplerProcessor::getCurrentSampleIndex()
         return currentSampleIndex;
     
     return samplesSpecs[(size_t) currentSampleIndex].ordinal;
-}
-
-bool SamplerProcessor::getIsShuffling()
-{
-    return isShuffling;
 }
 
 void SamplerProcessor::setIsShuffling(bool shouldShuffle)
@@ -140,7 +169,6 @@ void SamplerProcessor::setIsShuffling(bool shouldShuffle)
     else
         std::sort(samplesSpecs.begin(), samplesSpecs.end());
     
-    isShuffling = shouldShuffle;
     suspendProcessing(wasSuspended);
 }
 
@@ -150,10 +178,10 @@ void SamplerProcessor::advanceToNextSample()
 
     if (currentSampleIndex >= (int) samplesSpecs.size())
     {
-        if (isShuffling)
+        if (*parameters.getRawParameterValue("shuffle") > 0.5f)
             std::shuffle(samplesSpecs.begin(), samplesSpecs.end(), std::mt19937());
         
-        currentSampleIndex = (isLooping ? 0 : -1);
+        currentSampleIndex = (*parameters.getRawParameterValue("loop") > 0.5f ? 0 : -1);
     }
     
     currentPosition = (currentSampleIndex == -1 ? 0 : samplesSpecs[(size_t) currentSampleIndex].start);
