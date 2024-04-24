@@ -18,41 +18,41 @@ void SamplerProcessor::prepareToPlay (double, int)
 
 void SamplerProcessor::releaseResources()
 {
-    fileBuffers.clear();
-    bufferOrder.clear();
+    samplesBuffer.setSize(0, 0);
+    samplesSpecs.clear();
 }
 
 void SamplerProcessor::processBlock (juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer&)
 {
-    if (currentBufferIndex == -1)
-        advanceBufferIndex();
+    if (currentSampleIndex == -1)
+        advanceToNextSample();
 
-    auto fileBuffer = fileBuffers[(size_t)getCurrentFileIndex()];
     auto numOutputChannels = audioBuffer.getNumChannels();
     auto outSamplesRemaining = audioBuffer.getNumSamples();
     auto outSamplesOffset = 0;
     
     while (outSamplesRemaining > 0)
     {
-        auto bufSamplesRemaining = fileBuffer.getNumSamples() - position;
-        auto samplesThisTime = juce::jmin(outSamplesRemaining, bufSamplesRemaining);
+        auto currentSampleSpec = samplesSpecs[(size_t) currentSampleIndex];
+        auto inSamplesRemaining = currentSampleSpec.end - currentPosition;
+        auto inSamplesThisTime = juce::jmin(outSamplesRemaining, inSamplesRemaining);
         
         for (auto ch = 0; ch < numOutputChannels; ++ch)
-            audioBuffer.copyFrom(ch, outSamplesOffset, fileBuffer, ch % fileBuffer.getNumChannels(), position, samplesThisTime);
+            audioBuffer.copyFrom(ch, outSamplesOffset, samplesBuffer, ch % samplesBuffer.getNumChannels(), currentPosition, inSamplesThisTime);
         
-        outSamplesRemaining -= samplesThisTime;
-        outSamplesOffset += samplesThisTime;
-        position += samplesThisTime;
-        
-        if (position == fileBuffer.getNumSamples())
+        outSamplesRemaining -= inSamplesThisTime;
+        outSamplesOffset += inSamplesThisTime;
+        currentPosition += inSamplesThisTime;
+
+        if (currentPosition == currentSampleSpec.end)
         {
-            advanceBufferIndex();
-            if (currentBufferIndex == -1)
+            advanceToNextSample();
+            if (currentSampleIndex == -1)
             {
                 suspendProcessing(true);
                 sendChangeMessage();
+                break;
             }
-            position = 0;
         }
     }
 }
@@ -61,8 +61,8 @@ void SamplerProcessor::reset()
 {
     suspendProcessing(true);
     releaseResources();
-    currentBufferIndex = -1;
-    position = 0;
+    currentSampleIndex = -1;
+    currentPosition = 0;
 
     sendChangeMessage();
 }
@@ -85,39 +85,41 @@ void SamplerProcessor::readFiles(juce::Array<juce::File>& files)
 {
     reset();
     
-    for (auto file : files)
+    for (int i = 0; i < files.size(); ++i)
     {
+        auto file = files[i];
         std::unique_ptr<juce::AudioFormatReader> reader (formatManager.createReaderFor(file));
         if (reader.get() == nullptr)
             continue;
         
-        juce::AudioSampleBuffer tempBuffer;
-        juce::AudioSampleBuffer fileBuffer;
-        
-        tempBuffer.clear();
-        fileBuffer.clear();
         double speedRatio = reader->sampleRate / getSampleRate();
-        
-        tempBuffer.setSize((int) reader->numChannels, (int) reader->lengthInSamples);
-        fileBuffer.setSize((int) reader->numChannels, (int) (reader->lengthInSamples / speedRatio));
 
-        reader->read(&tempBuffer, 0, (int) reader->lengthInSamples, 0, true, true);
-        
+        juce::AudioSampleBuffer readBuffer ((int) reader->numChannels, (int) reader->lengthInSamples);
+        juce::AudioSampleBuffer resampledBuffer ((int) reader->numChannels, (int) (reader->lengthInSamples / speedRatio));
+
+        reader->read(&readBuffer, 0, (int) reader->lengthInSamples, 0, true, true);
+        juce::LagrangeInterpolator resampler;
         for (int ch = 0; ch < (int) reader->numChannels; ++ch)
-        {
-            std::unique_ptr<juce::LagrangeInterpolator> resampler (new juce::LagrangeInterpolator());
-            resampler->process(speedRatio, *tempBuffer.getArrayOfReadPointers(), *fileBuffer.getArrayOfWritePointers(), fileBuffer.getNumSamples());
-        }
+            resampler.process(speedRatio, readBuffer.getReadPointer(ch), resampledBuffer.getWritePointer(ch), resampledBuffer.getNumSamples());
         
-        fileBuffers.push_back(fileBuffer);
+        SampleSpec sample = { i, samplesBuffer.getNumSamples(), samplesBuffer.getNumSamples() + resampledBuffer.getNumSamples() };
+        samplesBuffer.setSize(getTotalNumOutputChannels(), sample.end, true);
+        
+        for (int ch = 0; ch < samplesBuffer.getNumChannels(); ++ch)
+            samplesBuffer.copyFrom(ch, sample.start, resampledBuffer, ch % resampledBuffer.getNumChannels(), 0, resampledBuffer.getNumSamples());
+        
+        samplesSpecs.push_back(sample);
     }
     
     setIsShuffling(isShuffling);
 }
 
-int SamplerProcessor::getCurrentFileIndex()
+int SamplerProcessor::getCurrentSampleIndex()
 {
-    return bufferOrder[(size_t) currentBufferIndex];
+    if (currentSampleIndex == -1)
+        return currentSampleIndex;
+    
+    return samplesSpecs[(size_t) currentSampleIndex].ordinal;
 }
 
 bool SamplerProcessor::getIsShuffling()
@@ -129,24 +131,32 @@ void SamplerProcessor::setIsShuffling(bool shouldShuffle)
 {
     bool wasSuspended = isSuspended();
     suspendProcessing(true);
-    position = 0;
-    bufferOrder.clear();
     
-    for (int i = 0; i < (int) fileBuffers.size(); ++i)
-        bufferOrder.push_back(i);
-    
+    currentSampleIndex = -1;
+    currentPosition = 0;
+
     if (shouldShuffle)
-        std::shuffle(bufferOrder.begin(), bufferOrder.end(), std::mt19937());
+        std::shuffle(samplesSpecs.begin(), samplesSpecs.end(), std::mt19937());
+    else
+        std::sort(samplesSpecs.begin(), samplesSpecs.end());
     
     isShuffling = shouldShuffle;
     suspendProcessing(wasSuspended);
 }
 
-void SamplerProcessor::advanceBufferIndex()
+void SamplerProcessor::advanceToNextSample()
 {
-    ++currentBufferIndex;
-    if (currentBufferIndex >= (int) fileBuffers.size())
-        currentBufferIndex = (isLooping ? 0 : -1);
+    ++currentSampleIndex;
+
+    if (currentSampleIndex >= (int) samplesSpecs.size())
+    {
+        if (isShuffling)
+            std::shuffle(samplesSpecs.begin(), samplesSpecs.end(), std::mt19937());
+        
+        currentSampleIndex = (isLooping ? 0 : -1);
+    }
+    
+    currentPosition = (currentSampleIndex == -1 ? 0 : samplesSpecs[(size_t) currentSampleIndex].start);
 
     sendChangeMessage();
 }

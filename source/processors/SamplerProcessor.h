@@ -24,19 +24,29 @@ public:
     bool getIsShuffling();
     void setIsShuffling(bool shouldShuffle);
     
-    int getCurrentFileIndex();
+    int getCurrentSampleIndex();
     void readFiles(juce::Array<juce::File>& files);
     
 private:
-    juce::AudioFormatManager formatManager;
-    std::vector<juce::AudioSampleBuffer> fileBuffers;
-    int position;
+    struct SampleSpec
+    {
+        int ordinal;
+        int start;
+        int end;
+        float gain = 1.0;
+        bool bypass = false;
+        bool operator < (const SampleSpec& rhs) const { return start < rhs.start; }
+    };
     
-    int currentBufferIndex = -1;
-    void advanceBufferIndex();
+    juce::AudioFormatManager formatManager;
+    juce::AudioSampleBuffer samplesBuffer;
+    std::vector<SampleSpec> samplesSpecs;
+
+    int currentPosition = 0;
+    int currentSampleIndex = -1;
+    void advanceToNextSample();
     
     bool isShuffling = false;
-    std::vector<int> bufferOrder;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplerProcessor)
 };

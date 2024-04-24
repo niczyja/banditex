@@ -51,8 +51,8 @@ void SamplerEditor::changeListenerCallback (juce::ChangeBroadcaster*)
     shuffleButton.setToggleState(samplerProcessor.getIsShuffling(), juce::NotificationType::dontSendNotification);
     loopButton.setToggleState(samplerProcessor.isLooping, juce::NotificationType::dontSendNotification);
     
-    if (!samplerProcessor.isSuspended() && samplerProcessor.getCurrentFileIndex() > -1)
-        filesList.selectRow(samplerProcessor.getCurrentFileIndex());
+    if (!samplerProcessor.isSuspended() && samplerProcessor.getCurrentSampleIndex() > -1)
+        filesList.selectRow(samplerProcessor.getCurrentSampleIndex());
     else
         filesList.deselectAllRows();
 }
