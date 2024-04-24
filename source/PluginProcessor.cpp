@@ -1,6 +1,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <cmath>
 
 #include "processors/SamplerProcessor.h"
 #include "processors/LevelProcessor.h"
@@ -65,6 +66,14 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer, juce::
     
     updateGraph();
     mainProcessor->processBlock(audioBuffer, midiBuffer);
+    
+    // this is a safety valve to protect us from too loud output
+    // it kicks in when there appears to be some garbage in the output buffer (NaN, inf, or amp > 2)
+    #if JUCE_DEBUG
+        for (int ch = 0; ch < audioBuffer.getNumChannels(); ++ch)
+            for (int i = 0; i < audioBuffer.getNumSamples(); ++i)
+                jassert(!std::isinf(audioBuffer.getSample(ch, i)) && std::abs(audioBuffer.getSample(ch, i)) < 2.0f);
+    #endif
 }
 
 #pragma mark -
