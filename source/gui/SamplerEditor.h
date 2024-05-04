@@ -2,6 +2,7 @@
 
 #include <juce_audio_formats/juce_audio_formats.h>
 #include "processors/SamplerProcessor.h"
+//#include "gui/WaveformDisplayComponent.h"
 
 
 class SamplerEditor : public juce::AudioProcessorEditor,
@@ -50,6 +51,8 @@ private:
     juce::Slider levelSlider;
     std::unique_ptr<SliderAttachment> levelAttachment;
     juce::Label levelLabel;
+    
+    //WaveformDisplayComponent waveformDisplay;
 
     void playStopButtonClicked();
     void openButtonClicked();
@@ -57,3 +60,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplerEditor)
 };
+
+

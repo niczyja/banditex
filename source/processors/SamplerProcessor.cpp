@@ -119,6 +119,8 @@ void SamplerProcessor::readFiles(juce::Array<juce::File>& files)
 {
     reset();
     
+    const int chunkSize = 1024;
+    
     for (int i = 0; i < files.size(); ++i)
     {
         auto file = files[i];
@@ -133,6 +135,28 @@ void SamplerProcessor::readFiles(juce::Array<juce::File>& files)
 
         reader->read(&readBuffer, 0, (int) reader->lengthInSamples, 0, true, true);
         juce::LagrangeInterpolator resampler;
+        
+        std::vector<float> singleWaveformPeak;
+        for (int position = 0; position < readBuffer.getNumSamples(); position += chunkSize)
+        {
+            float minSampleValue = std::numeric_limits<float>::max();
+            float maxSampleValue = std::numeric_limits<float>::lowest();
+            int limit = juce::jmin(position + chunkSize, readBuffer.getNumSamples());
+            
+            for (int j = position; j < limit; ++j)
+            {
+                float sample = readBuffer.getSample(0, j);  // Only using the first channel
+                if (sample < minSampleValue) minSampleValue = sample;
+                if (sample > maxSampleValue) maxSampleValue = sample;
+            }
+            
+            singleWaveformPeak.push_back(minSampleValue);
+            singleWaveformPeak.push_back(maxSampleValue);
+            
+        }
+        
+        waveformPeaks.push_back(singleWaveformPeak);
+        
         for (int ch = 0; ch < (int) reader->numChannels; ++ch)
             resampler.process(speedRatio, readBuffer.getReadPointer(ch), resampledBuffer.getWritePointer(ch), resampledBuffer.getNumSamples());
         

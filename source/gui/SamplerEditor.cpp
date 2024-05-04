@@ -38,6 +38,8 @@ SamplerEditor::SamplerEditor(SamplerProcessor& p, juce::AudioProcessorValueTreeS
     filesList.setModel(this);
     filesList.setClickingTogglesRowSelection(false);
     
+    //addAndMakeVisible(waveformDisplay);
+    
     addAndMakeVisible(pitchSlider);
     pitchSlider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
     pitchSlider.setTextBoxStyle(juce::Slider::TextEntryBoxPosition::NoTextBox, true, 0, 0);
@@ -101,6 +103,9 @@ void SamplerEditor::resized()
     pitchSlider.setBounds(pitch);
     
     filesList.setBounds(area);
+    
+    //waveformDisplay.setBounds(area.reduced(10));
+
 }
 
 void SamplerEditor::paint(juce::Graphics &g)
@@ -153,6 +158,7 @@ void SamplerEditor::openButtonClicked()
         loadedFiles = files;
         samplerProcessor.readFiles(loadedFiles);
         filesList.updateContent();
+        //waveformDisplay.setWaveformPeaks(samplerProcessor.getWaveformPeaks());
     });
 }
 
@@ -162,3 +168,29 @@ void SamplerEditor::clearButtonClicked()
     loadedFiles.clear();
     filesList.updateContent();
 }
+
+//void WaveformDisplayComponent::paint(juce::Graphics& g)
+//{
+//    g.fillAll(juce::Colours::black);  // Background color
+//    g.setColour(juce::Colours::white);  // Waveform color
+//
+//    auto area = getLocalBounds();
+//    float x = area.getX();
+//    float width = area.getWidth() / static_cast<float>(waveformPeaks.size() / 2);
+//
+//    for (size_t i = 0; i < waveformPeaks.size(); i += 2)
+//    {
+//        float top = juce::jmap(waveformPeaks[i], -1.0f, 1.0f, area.getBottom(), area.getY());
+//        float bottom = juce::jmap(waveformPeaks[i+1], -1.0f, 1.0f, area.getBottom(), area.getY());
+//        g.drawVerticalLine(static_cast<int>(x), top, bottom);
+//        x += width;
+//    }
+//}
+//
+//void WaveformDisplayComponent::setWaveformPeaks(const std::vector<std::vector<float>>& peaks)
+//{
+//    // For simplicity, assuming you just want to visualize one file's peaks
+//    if (!peaks.empty())
+//        waveformPeaks = peaks[0];
+//    repaint();
+//}

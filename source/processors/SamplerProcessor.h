@@ -25,6 +25,9 @@ public:
     int getCurrentSampleIndex();
     void readFiles(juce::Array<juce::File>& files);
     
+    std::vector<std::vector<float>> waveformPeaks;
+
+    
 private:
     struct SampleSpec
     {
