@@ -24,9 +24,7 @@ public:
 
     int getCurrentSampleIndex();
     void readFiles(juce::Array<juce::File>& files);
-    
-    std::vector<std::vector<float>> waveformPeaks;
-
+    const std::vector<juce::AudioBuffer<float>>& getWaveformPeaks() const { return waveformPeaks; }
     
 private:
     struct SampleSpec
@@ -48,6 +46,8 @@ private:
     int currentSampleIndex = -1;
     void advanceToNextSample();
     void setIsShuffling(bool shouldShuffle);
+    
+    std::vector<juce::AudioBuffer<float>> waveformPeaks;
         
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SamplerProcessor)
 };

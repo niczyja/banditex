@@ -2,7 +2,6 @@
 
 #include <juce_audio_formats/juce_audio_formats.h>
 #include "processors/SamplerProcessor.h"
-//#include "gui/WaveformDisplayComponent.h"
 
 
 class SamplerEditor : public juce::AudioProcessorEditor,
@@ -31,6 +30,8 @@ private:
     juce::TextButton openButton;
     juce::TextButton clearButton;
     juce::ListBox filesList;
+    
+    std::vector<float> audioPoints;
 
     juce::ToggleButton bypassToggle;
     std::unique_ptr<ButtonAttachment> bypassAttachment;
@@ -52,7 +53,6 @@ private:
     std::unique_ptr<SliderAttachment> levelAttachment;
     juce::Label levelLabel;
     
-    //WaveformDisplayComponent waveformDisplay;
 
     void playStopButtonClicked();
     void openButtonClicked();

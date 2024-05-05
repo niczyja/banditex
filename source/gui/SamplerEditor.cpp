@@ -37,6 +37,7 @@ SamplerEditor::SamplerEditor(SamplerProcessor& p, juce::AudioProcessorValueTreeS
     addAndMakeVisible(filesList);
     filesList.setModel(this);
     filesList.setClickingTogglesRowSelection(false);
+    filesList.setRowHeight(30);
     
     //addAndMakeVisible(waveformDisplay);
     
@@ -104,8 +105,6 @@ void SamplerEditor::resized()
     
     filesList.setBounds(area);
     
-    //waveformDisplay.setBounds(area.reduced(10));
-
 }
 
 void SamplerEditor::paint(juce::Graphics &g)
@@ -122,13 +121,39 @@ int SamplerEditor::getNumRows()
 
 void SamplerEditor::paintListBoxItem (int rowNumber, juce::Graphics& g, int width, int height, bool rowIsSelected)
 {
-    if (rowIsSelected)
-        g.fillAll(juce::Colours::lightblue);
+    auto& waveformPeaks = samplerProcessor.getWaveformPeaks(); // Ensure this method exists and is public in SamplerProcessor
 
-    g.setColour(juce::LookAndFeel::getDefaultLookAndFeel().findColour(juce::Label::textColourId));
-    g.setFont((float) height * 0.7f);
-    g.drawText(loadedFiles[rowNumber].getFileName(), 5, 0, width, height, juce::Justification::centredLeft, true);
+    if (rowNumber < static_cast<int>(waveformPeaks.size())) {
+        
+        const auto& buffer = waveformPeaks[static_cast<size_t>(rowNumber)];
+        auto numSamples = buffer.getNumSamples();
+        int ratio = 64;  // downsample ratio for waveform display
+        juce::Path waveformPath;
+        audioPoints.clear();  // clear previous data
+
+        // Collect points for waveform display
+        for (int sample = 0; sample < numSamples; sample += ratio) {
+            float normalizedSample = juce::jmap(buffer.getSample(0, sample), -1.0f, 1.0f, float(height), 0.0f);
+            audioPoints.push_back(normalizedSample);
+        }
+
+        // Create the waveform path
+        waveformPath.startNewSubPath(0, audioPoints[0]);
+        for (size_t i = 1; i < audioPoints.size(); ++i) {
+            waveformPath.lineTo(static_cast<float>(i), audioPoints[i]);
+        }
+
+        // Set colors and draw the path
+        g.setColour(rowIsSelected ? juce::Colours::lightblue : juce::Colours::grey);
+        g.strokePath(waveformPath, juce::PathStrokeType(1.0f));
+
+        // Draw file name
+        //g.setColour(juce::LookAndFeel::getDefaultLookAndFeel().findColour(juce::Label::textColourId));
+        //g.setFont((float)height * 0.7f);
+        //g.drawText(loadedFiles[rowNumber].getFileName(), 5, 0, width, height, juce::Justification::centredLeft, true);
+    }
 }
+
 
 #pragma mark -
 
@@ -158,7 +183,6 @@ void SamplerEditor::openButtonClicked()
         loadedFiles = files;
         samplerProcessor.readFiles(loadedFiles);
         filesList.updateContent();
-        //waveformDisplay.setWaveformPeaks(samplerProcessor.getWaveformPeaks());
     });
 }
 
@@ -169,28 +193,3 @@ void SamplerEditor::clearButtonClicked()
     filesList.updateContent();
 }
 
-//void WaveformDisplayComponent::paint(juce::Graphics& g)
-//{
-//    g.fillAll(juce::Colours::black);  // Background color
-//    g.setColour(juce::Colours::white);  // Waveform color
-//
-//    auto area = getLocalBounds();
-//    float x = area.getX();
-//    float width = area.getWidth() / static_cast<float>(waveformPeaks.size() / 2);
-//
-//    for (size_t i = 0; i < waveformPeaks.size(); i += 2)
-//    {
-//        float top = juce::jmap(waveformPeaks[i], -1.0f, 1.0f, area.getBottom(), area.getY());
-//        float bottom = juce::jmap(waveformPeaks[i+1], -1.0f, 1.0f, area.getBottom(), area.getY());
-//        g.drawVerticalLine(static_cast<int>(x), top, bottom);
-//        x += width;
-//    }
-//}
-//
-//void WaveformDisplayComponent::setWaveformPeaks(const std::vector<std::vector<float>>& peaks)
-//{
-//    // For simplicity, assuming you just want to visualize one file's peaks
-//    if (!peaks.empty())
-//        waveformPeaks = peaks[0];
-//    repaint();
-//}
