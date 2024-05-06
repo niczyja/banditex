@@ -13,82 +13,49 @@ PluginProcessor::PluginProcessor()
         (BusesProperties()
             .withInput("Input", juce::AudioChannelSet::stereo(), true)
             .withOutput("Output", juce::AudioChannelSet::stereo(), true)
-        ),
-        mainProcessor(new juce::AudioProcessorGraph()),
-        muteInput(new juce::AudioParameterBool({ "mute", 1 }, "Mute input", false))
+        )
 {
-    addParameter(muteInput);
+    mainProcessor = std::make_unique<juce::AudioProcessorGraph>();
+    parameters = std::make_unique<PluginParameters>(*this);
     
-    audioInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioInputNode));
     audioOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::audioOutputNode));
     midiInputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiInputNode));
     midiOutputNode = mainProcessor->addNode(std::make_unique<AudioGraphIOProcessor>(AudioGraphIOProcessor::midiOutputNode));
-
     processorNodes.push_back(mainProcessor->addNode(std::make_unique<SamplerProcessor>()));
 }
 
-#pragma mark -
-
-bool PluginProcessor::isBusesLayoutSupported(const BusesLayout &layouts) const
+PluginProcessor::~PluginProcessor()
 {
-    if (layouts.getMainInputChannelSet() == juce::AudioChannelSet::disabled()
-        || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::disabled())
-        return false;
-    
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-    
-    return layouts.getMainInputChannelSet() == layouts.getMainOutputChannelSet();
-}
-
-void PluginProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
-{
-    mainProcessor->setPlayConfigDetails(getMainBusNumInputChannels(),
-                                        getMainBusNumOutputChannels(),
-                                        sampleRate, samplesPerBlock);
-    
-    mainProcessor->prepareToPlay(sampleRate, samplesPerBlock);
-    initializeGraph();
-}
-
-void PluginProcessor::releaseResources()
-{
-    mainProcessor->releaseResources();
-}
-
-void PluginProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer& midiBuffer)
-{
-    for (int i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i)
-        audioBuffer.clear(i, 0, audioBuffer.getNumSamples());
-    
-    updateGraph();
-    mainProcessor->processBlock(audioBuffer, midiBuffer);
-    
-    // this is a safety valve to protect us from too loud output
-    // it kicks in when there appears to be some garbage in the output buffer (NaN, inf, or amp > 2)
-    #if JUCE_DEBUG
-        for (int ch = 0; ch < audioBuffer.getNumChannels(); ++ch)
-            for (int i = 0; i < audioBuffer.getNumSamples(); ++i)
-                jassert(!std::isinf(audioBuffer.getSample(ch, i)) && std::abs(audioBuffer.getSample(ch, i)) < 2.0f);
-    #endif
 }
 
 #pragma mark -
 
-juce::AudioProcessorEditor* PluginProcessor::createEditor()
+const juce::String PluginProcessor::getName() const
 {
-    return new PluginEditor(*this);
+    return JucePlugin_Name;
 }
+
+#pragma mark -
 
 bool PluginProcessor::hasEditor() const
 {
     return true;
 }
 
-const juce::String PluginProcessor::getName() const
+juce::AudioProcessorEditor* PluginProcessor::createEditor()
 {
-    return JucePlugin_Name;
+    return new PluginEditor(*this);
+}
+
+#pragma mark -
+
+bool PluginProcessor::isMidiEffect() const
+{
+   #if JucePlugin_IsMidiEffect
+    return true;
+   #else
+    return false;
+   #endif
 }
 
 bool PluginProcessor::acceptsMidi() const
@@ -107,20 +74,6 @@ bool PluginProcessor::producesMidi() const
    #else
     return false;
    #endif
-}
-
-bool PluginProcessor::isMidiEffect() const
-{
-   #if JucePlugin_IsMidiEffect
-    return true;
-   #else
-    return false;
-   #endif
-}
-
-double PluginProcessor::getTailLengthSeconds() const
-{
-    return 0.0;
 }
 
 int PluginProcessor::getNumPrograms()
@@ -150,6 +103,33 @@ void PluginProcessor::changeProgramName (int index, const juce::String& newName)
     juce::ignoreUnused (index, newName);
 }
 
+#pragma mark -
+
+double PluginProcessor::getTailLengthSeconds() const
+{
+    return 0.0;
+}
+
+juce::AudioProcessorParameter* PluginProcessor::getBypassParameter() const
+{
+    return parameters->raw("bypass");
+}
+
+bool PluginProcessor::isBusesLayoutSupported(const BusesLayout &layouts) const
+{
+    if (layouts.getMainInputChannelSet() == juce::AudioChannelSet::disabled()
+        || layouts.getMainOutputChannelSet() == juce::AudioChannelSet::disabled())
+        return false;
+    
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+        return false;
+    
+    return layouts.getMainInputChannelSet() == layouts.getMainOutputChannelSet();
+}
+
+#pragma mark -
+
 void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
@@ -167,8 +147,14 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 #pragma mark -
 
-void PluginProcessor::initializeGraph()
+void PluginProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
+    mainProcessor->setPlayConfigDetails(getMainBusNumInputChannels(),
+                                        getMainBusNumOutputChannels(),
+                                        sampleRate, samplesPerBlock);
+    
+    mainProcessor->prepareToPlay(sampleRate, samplesPerBlock);
+    
     for (auto connection : mainProcessor->getConnections())
         mainProcessor->removeConnection(connection);
     
@@ -185,16 +171,31 @@ void PluginProcessor::initializeGraph()
         node->getProcessor()->enableAllBuses();
 }
 
-void PluginProcessor::updateGraph()
+void PluginProcessor::releaseResources()
 {
-    //TODO: here we can update connections between audio processors
-
-    //FIXME: not sure we need this anymore?
-    for (auto node : processorNodes)
-        node->setBypassed(node->getProcessor()->getBypassParameter()->getValue() > 0.5f);
-
-    audioInputNode->setBypassed(muteInput->get());
+    mainProcessor->releaseResources();
 }
+
+void PluginProcessor::processBlock(juce::AudioBuffer<float>& audioBuffer, juce::MidiBuffer& midiBuffer)
+{
+    for (int i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i)
+        audioBuffer.clear(i, 0, audioBuffer.getNumSamples());
+    
+    //TODO: here we can update connections between audio processors (adding/removing samplers)
+
+    if (!parameters->bypass())
+        mainProcessor->processBlock(audioBuffer, midiBuffer);
+    
+    // this is a safety valve to protect us from too loud output
+    // it kicks in when there appears to be some garbage in the output buffer (NaN, inf, or amplitude > 2)
+    #if JUCE_DEBUG
+        for (int ch = 0; ch < audioBuffer.getNumChannels(); ++ch)
+            for (int i = 0; i < audioBuffer.getNumSamples(); ++i)
+                jassert(!std::isinf(audioBuffer.getSample(ch, i)) && std::abs(audioBuffer.getSample(ch, i)) < 2.0f);
+    #endif
+}
+
+#pragma mark -
 
 void PluginProcessor::connectAudioNodes()
 {
@@ -202,21 +203,21 @@ void PluginProcessor::connectAudioNodes()
     {
         switch (processorNodes.size()) {
             case 0:
-                mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
                 break;
             case 1:
-                mainProcessor->addConnection({ { audioInputNode->nodeID, ch }, { processorNodes.front()->nodeID, ch } });
                 mainProcessor->addConnection({ { processorNodes.front()->nodeID, ch }, { audioOutputNode->nodeID, ch } });
                 break;
-                
             default:
-                Node::Ptr previousNode = audioInputNode;
-                for (auto node : processorNodes)
-                {
-                    mainProcessor->addConnection({ { previousNode->nodeID, ch }, { node->nodeID, ch } });
-                    previousNode = node;
+                auto node = processorNodes.begin();
+                do {
+                    NodeAndChannel source = { node->get()->nodeID, ch };
+                    std::advance(node, 1);
+                    NodeAndChannel dest = { node->get()->nodeID, ch };
+                    mainProcessor->addConnection({ source, dest });
                 }
-                mainProcessor->addConnection({ { previousNode->nodeID, ch }, { audioOutputNode->nodeID, ch } });
+                while (node != processorNodes.end());
+                
+                mainProcessor->addConnection({ { node->get()->nodeID, ch }, { audioOutputNode->nodeID, ch } });
                 break;
         }
     }
