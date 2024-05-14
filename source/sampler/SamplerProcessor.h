@@ -3,6 +3,7 @@
 #include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_devices/juce_audio_devices.h>
 #include "ProcessorBase.h"
+#include "SamplerUtils.h"
 
 
 class SamplerProcessor : public ProcessorBase, juce::AudioProcessorValueTreeState::Listener

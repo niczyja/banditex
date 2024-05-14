@@ -1,5 +1,5 @@
 
-#include "processors/SamplerProcessor.h"
+#include "sampler/SamplerProcessor.h"
 #include "gui/SamplerEditor.h"
 #include <algorithm>
 #include <iterator>

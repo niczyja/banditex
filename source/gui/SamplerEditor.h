@@ -1,7 +1,7 @@
 #pragma once
 
 #include <juce_audio_formats/juce_audio_formats.h>
-#include "processors/SamplerProcessor.h"
+#include "sampler/SamplerProcessor.h"
 
 
 class SamplerEditor : public juce::AudioProcessorEditor,

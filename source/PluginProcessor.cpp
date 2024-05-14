@@ -3,7 +3,7 @@
 #include "PluginEditor.h"
 #include <cmath>
 
-#include "processors/SamplerProcessor.h"
+#include "sampler/SamplerProcessor.h"
 #include "processors/LevelProcessor.h"
 #include "processors/GainProcessor.h"
 
