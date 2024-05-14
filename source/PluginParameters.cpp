@@ -13,6 +13,8 @@ PluginParameters::~PluginParameters()
 {
 }
 
+#pragma mark -
+
 void PluginParameters::onbypass(std::function<void ()> callback)
 {
     parameters.call("bypass", callback);
