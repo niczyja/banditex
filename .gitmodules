@@ -10,3 +10,6 @@
 	path = cmake
 	url = https://github.com/sudara/cmake-includes.git
 	branch = main
+[submodule "JIVE"]
+	path = JIVE
+	url = https://github.com/ImJimmi/JIVE.git

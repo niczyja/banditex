@@ -51,6 +51,9 @@ add_subdirectory(JUCE)
 # This adds the melatonin inspector module
 add_subdirectory (modules/melatonin_inspector)
 
+# Add JIVE
+add_subdirectory(JIVE)
+
 # See `docs/CMake API.md` in the JUCE repo for all config options
 juce_add_plugin("${PROJECT_NAME}"
     # Adding plugin is a synth and plugin MIDI input so we can input MIDI and output sound
@@ -140,6 +143,9 @@ target_compile_definitions(SharedCode
 
     # JucePlugin_Name is for some reason doesn't use the nicer PRODUCT_NAME
     PRODUCT_NAME_WITHOUT_VERSION="Banditex"
+    
+    # Recommended if using both jive_layouts and jive_style_sheets
+    JIVE_GUI_ITEMS_HAVE_STYLE_SHEETS=1
 )
 
 # Link to any other modules you added (with juce_add_module) here!
@@ -151,6 +157,8 @@ target_link_libraries(SharedCode
     INTERFACE
     Assets
     melatonin_inspector
+    jive::jive_layouts
+    jive::jive_style_sheets
     juce_audio_utils
     juce_audio_processors
     juce_dsp
@@ -158,7 +166,8 @@ target_link_libraries(SharedCode
     juce_gui_extra
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
-    juce::juce_recommended_warning_flags)
+    juce::juce_recommended_warning_flags
+)
 
 # Link the JUCE plugin targets our SharedCode target
 target_link_libraries("${PROJECT_NAME}" PRIVATE SharedCode)
